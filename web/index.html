@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Code Review Agent - AI 代码质量评审</title>
+<title>Code Review Agent - 双引擎 AI 代码评审</title>
 <style>
   :root {
     --bg: #f6f7f9; --card: #ffffff; --border: #e5e7eb;
@@ -51,28 +51,42 @@
   .b-major { background:#ffedd5; color:#c2410c; }
   .b-minor { background:#fef9c3; color:#a16207; }
   .b-info { background:#e0e7ff; color:#3730a3; }
+  .b-rule { background:#d1fae5; color:#065f46; }
+  .b-llm { background:#dbeafe; color:#1e40af; }
+  .b-confirmed { background:#ede9fe; color:#5b21b6; }
   .issue { border-left: 3px solid #d1d5db; padding: .5rem .8rem; margin: .6rem 0; background: #fafafa; border-radius: 0 6px 6px 0; }
   .issue h4 { margin: 0 0 .25rem; font-size: .88rem; }
   .issue p { margin: .2rem 0; font-size: .84rem; }
+  .engine-info { display: flex; gap: 1rem; flex-wrap: wrap; margin: .5rem 0; }
+  .engine-stat { background: #f3f4f6; padding: .3rem .8rem; border-radius: 6px; font-size: .8rem; }
+  .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+  .tab { padding: .5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: .9rem; }
+  .tab.active { background: var(--primary); color: #fff; }
+  .tab:not(.active) { background: #e5e7eb; color: var(--muted); }
 </style>
 </head>
 <body>
 <header>
   <h1>Code Review Agent</h1>
-  <p>AI 代码质量评审服务 · 粘贴代码，秒出结构化评审报告</p>
+  <p>双引擎 AI 代码评审 · 规则引擎 + LLM 语义分析 · 交叉验证降低误报</p>
 </header>
 <main>
   <div class="card">
+    <div class="tabs">
+      <div class="tab active" id="tab-code" onclick="switchTab('code')">代码评审</div>
+      <div class="tab" id="tab-diff" onclick="switchTab('diff')">Diff 评审</div>
+    </div>
     <div class="row">
       <input id="language" placeholder="语言 (python / java / js / go ...)" value="python">
       <input id="context" placeholder="任务上下文（可选）">
     </div>
-    <label for="code">源代码</label>
+    <label for="code" id="code-label">源代码</label>
     <textarea id="code" placeholder="粘贴要评审的代码...">def get_user(user_id):
     query = f"SELECT * FROM users WHERE id = {user_id}"
     return db.execute(query).fetchone()
 
 def save_profile(user):
+    password = "hardcoded123456"
     db.execute(f"UPDATE users SET bio = '{user['bio']}' WHERE id = {user['id']}")
     db.commit()</textarea>
     <button id="btn">开始评审</button>
@@ -80,16 +94,34 @@ def save_profile(user):
   </div>
   <div class="card">
     <label>评审报告</label>
-    <div id="report">尚未评审。点击「开始评审」调用 POST /v1/review。</div>
+    <div id="report">尚未评审。点击「开始评审」调用双引擎评审。</div>
   </div>
 </main>
 <script>
+let mode = 'code';
 const btn = document.getElementById('btn');
 const statusEl = document.getElementById('status');
 const reportEl = document.getElementById('report');
+const codeEl = document.getElementById('code');
+const codeLabel = document.getElementById('code-label');
+
+function switchTab(tab) {
+  mode = tab;
+  document.getElementById('tab-code').classList.toggle('active', tab === 'code');
+  document.getElementById('tab-diff').classList.toggle('active', tab === 'diff');
+  if (tab === 'diff') {
+    codeLabel.textContent = 'Unified Diff';
+    codeEl.placeholder = '粘贴 git diff 输出...';
+    codeEl.value = '--- a/example.py\n+++ b/example.py\n@@ -1,5 +1,7 @@\n def process(data):\n-    result = eval(data)\n+    import json\n+    result = json.loads(data)\n     return result\n+\n+password = "secret123456"';
+  } else {
+    codeLabel.textContent = '源代码';
+    codeEl.placeholder = '粘贴要评审的代码...';
+    codeEl.value = "def get_user(user_id):\n    query = f\"SELECT * FROM users WHERE id = {user_id}\"\n    return db.execute(query).fetchone()\n\ndef save_profile(user):\n    password = \"hardcoded123456\"\n    db.execute(f\"UPDATE users SET bio = '{user['bio']}' WHERE id = {user['id']}\")\n    db.commit()";
+  }
+}
 
 function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function gradeColor(g) {
   if (g === 'A') return '#16a34a';
@@ -101,28 +133,41 @@ function renderIssues(report) {
   if (!report.issues || !report.issues.length) return '<p class="muted">未发现问题。</p>';
   return report.issues.map(i => {
     const line = i.line ? ` · 行 ${i.line}` : '';
+    const src = i.source ? `<span class="badge b-${i.source}">${i.source}</span>` : '';
+    const ruleId = i.rule_id ? ` <span class="muted">${esc(i.rule_id)}</span>` : '';
+    const conf = i.confidence ? ` <span class="muted">置信度 ${(i.confidence*100|0)}%</span>` : '';
     return `<div class="issue">
-      <h4><span class="badge b-${i.severity}">${i.severity}</span> ${esc(i.title)}${line}</h4>
+      <h4><span class="badge b-${i.severity}">${i.severity}</span> ${src} ${esc(i.title)}${line}${ruleId}${conf}</h4>
       <p><b>类别：</b>${esc(i.category)}</p>
       <p>${esc(i.description)}</p>
       <p class="muted"><b>建议：</b>${esc(i.suggestion)}</p>
     </div>`;
   }).join('');
 }
+function renderEngineInfo(info) {
+  if (!info || !Object.keys(info).length) return '';
+  return `<div class="engine-info">
+    <span class="engine-stat">规则引擎: ${info.rule_count||0} 条</span>
+    <span class="engine-stat">LLM: ${info.llm_count||0} 条</span>
+    <span class="engine-stat">交叉验证: ${info.confirmed_count||0} 条</span>
+  </div>`;
+}
 
 async function run() {
-  const code = document.getElementById('code').value.trim();
+  const code = codeEl.value.trim();
   const language = document.getElementById('language').value.trim();
   const context = document.getElementById('context').value.trim();
   if (!code) { statusEl.textContent = '请先粘贴代码'; return; }
   btn.disabled = true;
-  statusEl.textContent = '评审中，请稍候...';
+  statusEl.textContent = '双引擎评审中，请稍候...';
   reportEl.textContent = '';
   try {
-    const resp = await fetch('/v1/review', {
+    const endpoint = mode === 'diff' ? '/v1/review_diff' : '/v1/review';
+    const bodyKey = mode === 'diff' ? 'diff' : 'code';
+    const resp = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, language, context })
+      body: JSON.stringify({ [bodyKey]: code, language, context })
     });
     const data = await resp.json();
     if (!resp.ok) {
@@ -131,16 +176,19 @@ async function run() {
       return;
     }
     const r = data.report;
+    const diffMeta = data.files_changed ? `<p class="muted">变更文件: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</p>` : '';
     reportEl.innerHTML = `
       <p><b>评分：<span style="color:${gradeColor(r.grade)}">${r.score} (${r.grade})</span></b>
       <span class="muted"> · 模型：${esc(data.model)}</span></p>
+      ${diffMeta}
+      ${renderEngineInfo(r.engine_info)}
       <p>${esc(r.summary)}</p>
       <hr>
       <b>问题 (${r.issues.length})</b>
       ${renderIssues(r)}
       <hr>
-      <b>优点</b><ul>${r.strengths.map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
-      <b>改进方向</b><ul>${r.improvements.map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
+      <b>优点</b><ul>${(r.strengths||[]).map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
+      <b>改进方向</b><ul>${(r.improvements||[]).map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
     `;
     statusEl.textContent = '评审完成';
   } catch (e) {
