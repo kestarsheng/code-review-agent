@@ -42,6 +42,7 @@ class Finding:
     suggestion: str
     confidence: float
     source: str = "rule"
+    fix_code: str | None = None
 
 def _r(rule_id, lang, sev, cat, pat, conf, title, desc, sug):
     return Rule(rule_id, lang, sev, cat, re.compile(pat, re.MULTILINE), conf, title, desc, sug)
@@ -259,6 +260,72 @@ def detect_language(code: str, hint: str = "") -> str:
 def _line_number(code: str, pos: int) -> int:
     return code.count("\n", 0, pos) + 1
 
+
+def _extract_line(code: str, pos: int) -> str:
+    """Extract the full line containing the given position."""
+    start = code.rfind("\n", 0, pos) + 1
+    end = code.find("\n", pos)
+    if end == -1:
+        end = len(code)
+    return code[start:end]
+
+
+_FIX_GENERATORS: dict[str, callable] = {}
+
+
+def _fix_gen(rule_id: str):
+    """Decorator to register a fix code generator for a rule."""
+    def decorator(fn):
+        _FIX_GENERATORS[rule_id] = fn
+        return fn
+    return decorator
+
+
+@_fix_gen("PY-S001")
+def _fix_eval(match_text: str, full_line: str) -> str:
+    return full_line.replace("eval(", "ast.literal_eval(")
+
+
+@_fix_gen("PY-S002")
+def _fix_exec(match_text: str, full_line: str) -> str:
+    indent = full_line[: len(full_line) - len(full_line.lstrip())]
+    return f"{indent}# 重构：避免使用 exec()，改为安全的实现方式"
+
+
+@_fix_gen("PY-S004")
+def _fix_hardcoded_secret(match_text: str, full_line: str) -> str:
+    indent = full_line[: len(full_line) - len(full_line.lstrip())]
+    var_match = re.match(r"\s*(\w+)\s*=\s*['\"]", full_line)
+    var_name = var_match.group(1).upper() if var_match else "SECRET"
+    return f"{indent}{var_match.group(1) if var_match else 'secret'} = os.environ['{var_name}']"
+
+
+@_fix_gen("PY-S006")
+def _fix_sql_injection(match_text: str, full_line: str) -> str:
+    indent = full_line[: len(full_line) - len(full_line.lstrip())]
+    return f"{indent}# 使用参数化查询：cursor.execute(sql, (param,))"
+
+
+@_fix_gen("JS-S001")
+def _fix_js_eval(match_text: str, full_line: str) -> str:
+    return full_line.replace("eval(", "JSON.parse(")
+
+
+@_fix_gen("JS-S002")
+def _fix_innerhtml(match_text: str, full_line: str) -> str:
+    return full_line.replace("innerHTML", "textContent")
+
+
+@_fix_gen("PY-B001")
+def _fix_bare_except(match_text: str, full_line: str) -> str:
+    return full_line.replace("except:", "except (ValueError, TypeError) as e:")
+
+
+@_fix_gen("AI-H003")
+def _fix_swallowed_catch(match_text: str, full_line: str) -> str:
+    indent = full_line[: len(full_line) - len(full_line.lstrip())]
+    return f"{indent}catch (e) {{ logger.error(e); throw e; }}"
+
 def run_rules(code: str, language: str = "") -> list[Finding]:
     """Run all applicable rules against the code and return findings."""
     detected = detect_language(code, language)
@@ -268,6 +335,14 @@ def run_rules(code: str, language: str = "") -> list[Finding]:
         if rule.language != "*" and rule.language != detected:
             continue
         for match in rule.pattern.finditer(code):
+            fix_code = None
+            generator = _FIX_GENERATORS.get(rule.id)
+            if generator:
+                try:
+                    full_line = _extract_line(code, match.start())
+                    fix_code = generator(match.group(0), full_line)
+                except Exception:
+                    fix_code = None
             findings.append(Finding(
                 rule_id=rule.id,
                 severity=rule.severity,
@@ -278,6 +353,7 @@ def run_rules(code: str, language: str = "") -> list[Finding]:
                 suggestion=rule.suggestion,
                 confidence=rule.confidence,
                 source="rule",
+                fix_code=fix_code,
             ))
     return findings
 
@@ -310,6 +386,7 @@ def merge_findings(
             "title": f.title,
             "description": f.description,
             "suggestion": f.suggestion,
+            "fix_code": f.fix_code,
             "source": "rule",
             "rule_id": f.rule_id,
             "confidence": f.confidence,
@@ -334,6 +411,8 @@ def merge_findings(
                     m["confidence"] = min(1.0, m.get("confidence", 0.5) + 0.3)
                     if not m.get("description") and issue.get("description"):
                         m["description"] = issue["description"]
+                    if issue.get("fix_code"):
+                        m["fix_code"] = issue["fix_code"]
                     break
         else:
             merged.append({
@@ -343,6 +422,7 @@ def merge_findings(
                 "title": issue.get("title", ""),
                 "description": issue.get("description", ""),
                 "suggestion": issue.get("suggestion", ""),
+                "fix_code": issue.get("fix_code"),
                 "source": "llm",
                 "rule_id": None,
                 "confidence": 0.7,

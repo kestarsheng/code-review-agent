@@ -156,6 +156,7 @@ def review_code(code: str, language: str = "", context: str = "") -> dict[str, A
             "title": f.title,
             "description": f.description,
             "suggestion": f.suggestion,
+            "fix_code": f.fix_code,
             "confidence": f.confidence,
         }
         for f in rule_findings
@@ -248,6 +249,7 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
             "title": f.title,
             "description": f.description,
             "suggestion": f.suggestion,
+            "fix_code": f.fix_code,
             "confidence": f.confidence,
         }
         for f in rule_findings

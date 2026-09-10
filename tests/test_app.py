@@ -256,3 +256,47 @@ def test_overall_score_weighted():
     }
     score = _compute_overall_score(dims)
     assert score == 70
+
+
+# ── Fix code generation ───────────────────────────────────────
+
+def test_fix_code_eval():
+    code = "result = eval(user_input)"
+    findings = run_rules(code, "python")
+    f = next(x for x in findings if x.rule_id == "PY-S001")
+    assert f.fix_code is not None
+    assert "ast.literal_eval" in f.fix_code
+
+
+def test_fix_code_innerhtml():
+    code = "document.getElementById('x').innerHTML = userInput"
+    findings = run_rules(code, "javascript")
+    f = next(x for x in findings if x.rule_id == "JS-S002")
+    assert f.fix_code is not None
+    assert "textContent" in f.fix_code
+
+
+def test_fix_code_hardcoded_secret():
+    code = 'api_key = "sk-1234567890abcdef"'
+    findings = run_rules(code, "python")
+    f = next(x for x in findings if x.rule_id == "PY-S004")
+    assert f.fix_code is not None
+    assert "os.environ" in f.fix_code
+
+
+def test_fix_code_in_merge_findings():
+    rule_findings = run_rules("eval('1+1')", "python")
+    merged = merge_findings(rule_findings, [], "eval('1+1')")
+    assert any(m.get("fix_code") for m in merged)
+
+
+def test_fix_code_llm_override_on_confirm():
+    rule_findings = run_rules("eval('1+1')", "python")
+    llm_issues = [
+        {"severity": "critical", "category": "security", "line": 1,
+         "title": "eval", "description": "RCE", "suggestion": "don't use eval",
+         "fix_code": "import ast\nresult = ast.literal_eval(user_input)"}
+    ]
+    merged = merge_findings(rule_findings, llm_issues, "eval('1+1')")
+    confirmed = next(m for m in merged if m["source"] == "confirmed")
+    assert confirmed["fix_code"] == "import ast\nresult = ast.literal_eval(user_input)"

@@ -36,6 +36,10 @@ class ReviewIssue(BaseModel):
     title: str
     description: str
     suggestion: str
+    fix_code: str | None = Field(
+        default=None,
+        description="可直接应用的修复代码片段，null 表示无法自动生成",
+    )
     source: IssueSource = Field(default="llm", description="Which engine found this issue")
     rule_id: str | None = Field(default=None, description="Rule ID if from rule engine")
     confidence: float = Field(default=0.7, ge=0.0, le=1.0, description="Confidence score")
