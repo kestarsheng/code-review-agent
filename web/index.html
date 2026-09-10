@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Review Agent - AI 代码质量评审</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --border: #e5e7eb;
+    --text: #1f2937; --muted: #6b7280; --primary: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text);
+  }
+  header {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: #fff; padding: 2rem 2rem 1.5rem; text-align: center;
+  }
+  header h1 { margin: 0 0 .3rem; font-size: 1.6rem; }
+  header p { margin: 0; opacity: .85; font-size: .95rem; }
+  main { max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem; margin-bottom: 1.2rem;
+  }
+  label { font-weight: 600; display: block; margin-bottom: .4rem; }
+  .row { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .row input {
+    flex: 1; min-width: 140px; padding: .55rem .7rem; border: 1px solid var(--border);
+    border-radius: 8px; font-size: .9rem;
+  }
+  textarea {
+    width: 100%; min-height: 220px; padding: .7rem; border: 1px solid var(--border);
+    border-radius: 8px; font-family: "Cascadia Code", Consolas, monospace;
+    font-size: .85rem; resize: vertical;
+  }
+  button {
+    background: var(--primary); color: #fff; border: 0; border-radius: 8px;
+    padding: .7rem 1.6rem; font-size: .95rem; cursor: pointer; margin-top: .6rem;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  #report { white-space: pre-wrap; font-family: "Cascadia Code", Consolas, monospace; font-size: .85rem; }
+  .muted { color: var(--muted); font-size: .85rem; }
+  .badge {
+    display: inline-block; padding: .15rem .55rem; border-radius: 99px;
+    font-size: .75rem; font-weight: 600;
+  }
+  .b-critical { background:#fee2e2; color:#b91c1c; }
+  .b-major { background:#ffedd5; color:#c2410c; }
+  .b-minor { background:#fef9c3; color:#a16207; }
+  .b-info { background:#e0e7ff; color:#3730a3; }
+  .issue { border-left: 3px solid #d1d5db; padding: .5rem .8rem; margin: .6rem 0; background: #fafafa; border-radius: 0 6px 6px 0; }
+  .issue h4 { margin: 0 0 .25rem; font-size: .88rem; }
+  .issue p { margin: .2rem 0; font-size: .84rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Code Review Agent</h1>
+  <p>AI 代码质量评审服务 · 粘贴代码，秒出结构化评审报告</p>
+</header>
+<main>
+  <div class="card">
+    <div class="row">
+      <input id="language" placeholder="语言 (python / java / js / go ...)" value="python">
+      <input id="context" placeholder="任务上下文（可选）">
+    </div>
+    <label for="code">源代码</label>
+    <textarea id="code" placeholder="粘贴要评审的代码...">def get_user(user_id):
+    query = f"SELECT * FROM users WHERE id = {user_id}"
+    return db.execute(query).fetchone()
+
+def save_profile(user):
+    db.execute(f"UPDATE users SET bio = '{user['bio']}' WHERE id = {user['id']}")
+    db.commit()</textarea>
+    <button id="btn">开始评审</button>
+    <p class="muted" id="status"></p>
+  </div>
+  <div class="card">
+    <label>评审报告</label>
+    <div id="report">尚未评审。点击「开始评审」调用 POST /v1/review。</div>
+  </div>
+</main>
+<script>
+const btn = document.getElementById('btn');
+const statusEl = document.getElementById('status');
+const reportEl = document.getElementById('report');
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function gradeColor(g) {
+  if (g === 'A') return '#16a34a';
+  if (g === 'B') return '#2563eb';
+  if (g === 'C') return '#d97706';
+  return '#dc2626';
+}
+function renderIssues(report) {
+  if (!report.issues || !report.issues.length) return '<p class="muted">未发现问题。</p>';
+  return report.issues.map(i => {
+    const line = i.line ? ` · 行 ${i.line}` : '';
+    return `<div class="issue">
+      <h4><span class="badge b-${i.severity}">${i.severity}</span> ${esc(i.title)}${line}</h4>
+      <p><b>类别：</b>${esc(i.category)}</p>
+      <p>${esc(i.description)}</p>
+      <p class="muted"><b>建议：</b>${esc(i.suggestion)}</p>
+    </div>`;
+  }).join('');
+}
+
+async function run() {
+  const code = document.getElementById('code').value.trim();
+  const language = document.getElementById('language').value.trim();
+  const context = document.getElementById('context').value.trim();
+  if (!code) { statusEl.textContent = '请先粘贴代码'; return; }
+  btn.disabled = true;
+  statusEl.textContent = '评审中，请稍候...';
+  reportEl.textContent = '';
+  try {
+    const resp = await fetch('/v1/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, language, context })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      reportEl.textContent = '错误：' + (data.error || resp.statusText);
+      statusEl.textContent = '';
+      return;
+    }
+    const r = data.report;
+    reportEl.innerHTML = `
+      <p><b>评分：<span style="color:${gradeColor(r.grade)}">${r.score} (${r.grade})</span></b>
+      <span class="muted"> · 模型：${esc(data.model)}</span></p>
+      <p>${esc(r.summary)}</p>
+      <hr>
+      <b>问题 (${r.issues.length})</b>
+      ${renderIssues(r)}
+      <hr>
+      <b>优点</b><ul>${r.strengths.map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
+      <b>改进方向</b><ul>${r.improvements.map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
+    `;
+    statusEl.textContent = '评审完成';
+  } catch (e) {
+    reportEl.textContent = '请求失败：' + e.message;
+    statusEl.textContent = '';
+  } finally {
+    btn.disabled = false;
+  }
+}
+btn.addEventListener('click', run);
+</script>
+</body>
+</html>
