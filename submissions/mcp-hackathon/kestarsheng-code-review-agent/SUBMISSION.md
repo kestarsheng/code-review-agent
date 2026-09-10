@@ -17,7 +17,7 @@
 ## Source and reproducibility
 
 - **Source repository:** https://github.com/kestarsheng/code-review-agent
-- **Review commit:** `f28109a1754b2a0811262dd11b97e0ec361eddb7`
+- **Review commit:** `64b3365f0faad5b71f6710cd5dd0356c94262d74`
 - **Source submitted in this PR:** `source/`
 - **Run tests:** `pip install -r requirements.txt && pytest tests/ -v`
 - **Run locally:** `pip install -r requirements.txt && uvicorn app.main:app --reload`
@@ -28,19 +28,19 @@ The API must expose:
 
 ```json
 // GET /health
-{"status":"ok","commit":"f28109a1754b2a0811262dd11b97e0ec361eddb7"}
+{"status":"ok","commit":"64b3365f0faad5b71f6710cd5dd0356c94262d74"}
 ```
 
 ```json
 // GET /.well-known/xagent-verification.json
-{"schemaVersion":1,"slug":"kestarsheng-code-review-agent","commit":"f28109a1754b2a0811262dd11b97e0ec361eddb7"}
+{"schemaVersion":1,"slug":"kestarsheng-code-review-agent","commit":"64b3365f0faad5b71f6710cd5dd0356c94262d74"}
 ```
 
 ## Verification
 
 The reproducible call instructions and redacted example responses are in `verification/README.md`.
 
-- **Health-check result:** `{"status":"ok","commit":"f28109a..."}`
+- **Health-check result:** `{"status":"ok","commit":"64b3365..."}`
 - **Capability call:** `POST /v1/review` with `{"code":"def f(x): return x/0","language":"python"}`
 - **Expected error behavior:** Empty body → 422; oversized code → 413; LLM failure → 502 `{"ok":false,"error":"..."}`.
 

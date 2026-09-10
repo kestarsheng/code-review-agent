@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Review commit: `f28109a1754b2a0811262dd11b97e0ec361eddb7`
+- Review commit: `64b3365f0faad5b71f6710cd5dd0356c94262d74`
 - API base URL: `__API_BASE_URL__/v1`
 - Authentication: none
 
@@ -15,7 +15,7 @@ curl --fail --silent --show-error __API_BASE_URL__/health
 Expected response:
 
 ```json
-{"status":"ok","commit":"f28109a1754b2a0811262dd11b97e0ec361eddb7"}
+{"status":"ok","commit":"64b3365f0faad5b71f6710cd5dd0356c94262d74"}
 ```
 
 ## 2. Deployment proof
@@ -27,7 +27,7 @@ curl --fail --silent --show-error __API_BASE_URL__/.well-known/xagent-verificati
 Expected response:
 
 ```json
-{"schemaVersion":1,"slug":"kestarsheng-code-review-agent","commit":"f28109a1754b2a0811262dd11b97e0ec361eddb7"}
+{"schemaVersion":1,"slug":"kestarsheng-code-review-agent","commit":"64b3365f0faad5b71f6710cd5dd0356c94262d74"}
 ```
 
 ## 3. Capability call
