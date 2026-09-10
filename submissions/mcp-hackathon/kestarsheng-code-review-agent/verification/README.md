@@ -3,13 +3,13 @@
 ## Prerequisites
 
 - Review commit: `64b3365f0faad5b71f6710cd5dd0356c94262d74`
-- API base URL: `__API_BASE_URL__/v1`
+- API base URL: `https://code-review-agent-ashy-six.vercel.app/v1`
 - Authentication: none
 
 ## 1. Health check
 
 ```bash
-curl --fail --silent --show-error __API_BASE_URL__/health
+curl --fail --silent --show-error https://code-review-agent-ashy-six.vercel.app/health
 ```
 
 Expected response:
@@ -21,7 +21,7 @@ Expected response:
 ## 2. Deployment proof
 
 ```bash
-curl --fail --silent --show-error __API_BASE_URL__/.well-known/xagent-verification.json
+curl --fail --silent --show-error https://code-review-agent-ashy-six.vercel.app/.well-known/xagent-verification.json
 ```
 
 Expected response:
@@ -34,7 +34,7 @@ Expected response:
 
 ```bash
 curl --fail --silent --show-error \
-  --request POST __API_BASE_URL__/v1/review \
+  --request POST https://code-review-agent-ashy-six.vercel.app/v1/review \
   --header "content-type: application/json" \
   --data '{"code":"def f(x):\n    return x / 0","language":"python"}'
 ```
@@ -72,7 +72,7 @@ Empty body:
 
 ```bash
 curl --fail --silent --show-error \
-  --request POST __API_BASE_URL__/v1/review \
+  --request POST https://code-review-agent-ashy-six.vercel.app/v1/review \
   --header "content-type: application/json" \
   --data '{}'
 ```

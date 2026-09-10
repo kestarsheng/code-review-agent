@@ -8,8 +8,8 @@
 
 ## Live API
 
-- **API base URL:** __API_BASE_URL__/v1
-- **Health-check URL:** __API_BASE_URL__/health
+- **API base URL:** https://code-review-agent-ashy-six.vercel.app/v1
+- **Health-check URL:** https://code-review-agent-ashy-six.vercel.app/health
 - **Authentication:** none
 - **Rate limits / known limits:** Single request limited by LLM provider timeout (120 s). Max code size 60 000 chars. Free-tier hosting may cold-start.
 - **API contract:** OpenAPI at `/docs`; request `POST /v1/review` body `{"code": string, "language"?: string, "context"?: string}`, response `{"ok": true, "language": string, "model": string, "report": ReviewReport}`.
@@ -21,7 +21,7 @@
 - **Source submitted in this PR:** `source/`
 - **Run tests:** `pip install -r requirements.txt && pytest tests/ -v`
 - **Run locally:** `pip install -r requirements.txt && uvicorn app.main:app --reload`
-- **Deploy:** `docker build -t code-review-agent . && docker run -p 8000:8000 code-review-agent` or Render Blueprint from `render.yaml`.
+- **Deploy:** `docker build -t code-review-agent . && docker run -p 8000:8000 code-review-agent`, Render Blueprint from `render.yaml`, or Vercel (current production deployment).
 - **Version binding:** `GET /health` returns `{"status":"ok","commit":"<commit>"}`; `GET /.well-known/xagent-verification.json` returns `{"schemaVersion":1,"slug":"kestarsheng-code-review-agent","commit":"<commit>"}`. The commit is injected via the `COMMIT` environment variable at deploy time.
 
 The API must expose:
@@ -50,7 +50,7 @@ The reproducible call instructions and redacted example responses are in `verifi
 - **Purpose and retention:** Code is sent to the configured LLM provider (DeepSeek) for review only. The service does not persist submitted code to any database or log.
 - **Third parties / outbound network calls:** DeepSeek API (OpenAI-compatible protocol) for LLM inference.
 - **Secrets:** No secrets are committed. `LLM_API_KEY` is set as a deployment environment variable and never appears in source.
-- **Known risks / restrictions:** Free-tier hosting may sleep after 15 min idle; first request after sleep may take longer. The LLM may occasionally produce imperfect JSON; the parser tolerates fenced/embedded JSON.
+- **Known risks / restrictions:** Vercel serverless functions have a 10 s default timeout; long code reviews may approach this limit. The LLM may occasionally produce imperfect JSON; the parser tolerates fenced/embedded JSON.
 
 ## Support
 
