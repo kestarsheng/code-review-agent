@@ -200,3 +200,59 @@ def test_extract_json_invalid():
 
     with pytest.raises(ReviewError):
         _extract_json("完全没有JSON")
+
+
+# ── Dimension scores ───────────────────────────────────────────
+
+def test_dimension_scores_compute():
+    from app.reviewer import _compute_dimension_scores, _compute_overall_score
+
+    issues = [
+        {"category": "security", "severity": "critical"},
+        {"category": "performance", "severity": "minor"},
+    ]
+    scores = _compute_dimension_scores(None, issues)
+    assert scores["security"] <= 50
+    assert scores["performance"] < 85
+    assert scores["correctness"] == 85
+    overall = _compute_overall_score(scores)
+    assert 0 <= overall <= 100
+
+
+def test_dimension_scores_with_llm_baseline():
+    from app.reviewer import _compute_dimension_scores
+
+    llm_scores = {
+        "correctness": 90,
+        "security": 70,
+        "performance": 85,
+        "maintainability": 80,
+        "best_practice": 75,
+    }
+    issues = [{"category": "security", "severity": "major"}]
+    scores = _compute_dimension_scores(llm_scores, issues)
+    assert scores["security"] == 70 - 18
+    assert scores["correctness"] == 90
+
+
+def test_dimension_scores_ai_pattern_affects_best_practice():
+    from app.reviewer import _compute_dimension_scores
+
+    issues = [{"category": "ai_pattern", "severity": "major"}]
+    scores = _compute_dimension_scores(None, issues)
+    assert scores["best_practice"] < 85
+    assert scores["security"] == 85
+
+
+def test_overall_score_weighted():
+    from app.reviewer import _compute_overall_score
+
+    dims = {
+        "correctness": 100,
+        "security": 0,
+        "performance": 100,
+        "maintainability": 100,
+        "best_practice": 100,
+    }
+    score = _compute_overall_score(dims)
+    assert score == 70

@@ -30,6 +30,62 @@ from .rules_engine import merge_findings, run_rules
 
 logger = logging.getLogger(__name__)
 
+_SEVERITY_PENALTY = {"critical": 35, "major": 18, "minor": 8, "info": 3}
+_DIMENSION_CATEGORIES = {
+    "correctness": ["correctness"],
+    "security": ["security"],
+    "performance": ["performance"],
+    "maintainability": ["maintainability"],
+    "best_practice": ["best_practice", "ai_pattern"],
+}
+
+
+def _compute_dimension_scores(
+    llm_scores: dict[str, int] | None,
+    merged_issues: list[dict],
+) -> dict[str, int]:
+    """Compute final dimension scores by combining LLM scores with rule penalties.
+
+    LLM provides a semantic baseline; rule-engine findings apply penalties
+    based on severity. This ensures deterministic rules always affect the
+    score even if the LLM misses them.
+    """
+    defaults = {
+        "correctness": 85,
+        "security": 85,
+        "performance": 85,
+        "maintainability": 85,
+        "best_practice": 85,
+    }
+    if llm_scores:
+        for k in defaults:
+            if k in llm_scores:
+                defaults[k] = max(0, min(100, int(llm_scores[k])))
+
+    for issue in merged_issues:
+        cat = issue.get("category", "")
+        sev = issue.get("severity", "info")
+        penalty = _SEVERITY_PENALTY.get(sev, 3)
+
+        for dim, cats in _DIMENSION_CATEGORIES.items():
+            if cat in cats:
+                defaults[dim] = max(0, defaults[dim] - penalty)
+
+    return defaults
+
+
+def _compute_overall_score(dimensions: dict[str, int]) -> int:
+    """Weighted average: security & correctness weighted higher."""
+    weights = {
+        "correctness": 0.25,
+        "security": 0.30,
+        "performance": 0.15,
+        "maintainability": 0.15,
+        "best_practice": 0.15,
+    }
+    total = sum(dimensions[k] * w for k, w in weights.items())
+    return round(total)
+
 
 class ReviewError(Exception):
     pass
@@ -118,10 +174,22 @@ def review_code(code: str, language: str = "", context: str = "") -> dict[str, A
     llm_count = sum(1 for i in merged_issues if i.get("source") == "llm")
     confirmed_count = sum(1 for i in merged_issues if i.get("source") == "confirmed")
 
+    # ── Phase 4: Dimension scores ──
+    llm_dim_scores = llm_data.get("dimension_scores")
+    dimension_scores = _compute_dimension_scores(llm_dim_scores, merged_issues)
+    overall_score = _compute_overall_score(dimension_scores)
+    grade = (
+        "A" if overall_score >= 90
+        else "B" if overall_score >= 75
+        else "C" if overall_score >= 60
+        else "D"
+    )
+
     report = {
         "summary": llm_data.get("summary", ""),
-        "score": llm_data.get("score", 50),
-        "grade": llm_data.get("grade", "C"),
+        "score": overall_score,
+        "grade": grade,
+        "dimension_scores": dimension_scores,
         "issues": merged_issues,
         "strengths": llm_data.get("strengths", []),
         "improvements": llm_data.get("improvements", []),
@@ -144,6 +212,13 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
             "summary": "变更不包含实质性代码修改（仅删除或空白变更）。",
             "score": 100,
             "grade": "A",
+            "dimension_scores": {
+                "correctness": 100,
+                "security": 100,
+                "performance": 100,
+                "maintainability": 100,
+                "best_practice": 100,
+            },
             "issues": [],
             "strengths": ["变更无引入新代码的风险"],
             "improvements": [],
@@ -187,10 +262,21 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
     llm_count = sum(1 for i in merged_issues if i.get("source") == "llm")
     confirmed_count = sum(1 for i in merged_issues if i.get("source") == "confirmed")
 
+    llm_dim_scores = llm_data.get("dimension_scores")
+    dimension_scores = _compute_dimension_scores(llm_dim_scores, merged_issues)
+    overall_score = _compute_overall_score(dimension_scores)
+    grade = (
+        "A" if overall_score >= 90
+        else "B" if overall_score >= 75
+        else "C" if overall_score >= 60
+        else "D"
+    )
+
     report = {
         "summary": llm_data.get("summary", ""),
-        "score": llm_data.get("score", 50),
-        "grade": llm_data.get("grade", "C"),
+        "score": overall_score,
+        "grade": grade,
+        "dimension_scores": dimension_scores,
         "issues": merged_issues,
         "strengths": llm_data.get("strengths", []),
         "improvements": llm_data.get("improvements", []),

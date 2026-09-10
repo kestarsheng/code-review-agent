@@ -23,8 +23,15 @@ JSON_SCHEMA_EXAMPLE = """\
 评审报告 JSON 结构如下：
 {
   "summary": "一段 2-4 句的总体评价，指出最关键的问题与整体质量",
-  "score": 0到100的整数,
+  "score": 0到100的整数（综合评分）,
   "grade": "由 score 派生，90-100 为 A，75-89 为 B，60-74 为 C，60 以下为 D",
+  "dimension_scores": {
+    "correctness": 0到100的整数，评估逻辑正确性、边界条件、错误处理,
+    "security": 0到100的整数，评估安全漏洞风险（注入、泄露、RCE等）,
+    "performance": 0到100的整数，评估时间/空间复杂度、资源使用效率,
+    "maintainability": 0到100的整数，评估可读性、模块化、耦合度,
+    "best_practice": 0到100的整数，评估是否符合语言/框架最佳实践
+  },
   "issues": [
     {
       "severity": "critical 或 major 或 minor 或 info",
@@ -44,6 +51,12 @@ JSON_SCHEMA_EXAMPLE = """\
 2. 不要编造代码中不存在的问题。security 类别优先于其他类别报告。
 3. 建议要具体、可执行，需要时可附简短示例代码。
 4. 若规则引擎预检结果中存在误报，请在 issues 中用 severity=info 说明"规则引擎 XX 为误报"。
+5. dimension_scores 中每个维度的评分必须与 issues 中对应类别的问题严重程度一致：
+   - 该维度无问题：85-100
+   - 仅有 minor/info 级别问题：70-84
+   - 有 major 级别问题：50-69
+   - 有 critical 级别问题：0-49
+6. score 应为 dimension_scores 五个维度的加权平均（security 和 correctness 权重更高）。
 """
 
 DIFF_SYSTEM_PROMPT = """\

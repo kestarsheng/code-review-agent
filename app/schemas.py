@@ -41,10 +41,24 @@ class ReviewIssue(BaseModel):
     confidence: float = Field(default=0.7, ge=0.0, le=1.0, description="Confidence score")
 
 
+class DimensionScores(BaseModel):
+    correctness: int = Field(..., ge=0, le=100, description="正确性维度评分")
+    security: int = Field(..., ge=0, le=100, description="安全性维度评分")
+    performance: int = Field(..., ge=0, le=100, description="性能维度评分")
+    maintainability: int = Field(..., ge=0, le=100, description="可维护性维度评分")
+    best_practice: int = Field(..., ge=0, le=100, description="最佳实践维度评分")
+
+
 class ReviewReport(BaseModel):
     summary: str = Field(..., description="One-paragraph overall summary")
     score: int = Field(..., ge=0, le=100)
     grade: str = Field(..., description="A/B/C/D derived from score")
+    dimension_scores: DimensionScores = Field(
+        default_factory=lambda: DimensionScores(
+            correctness=80, security=80, performance=80, maintainability=80, best_practice=80
+        ),
+        description="五维度分项评分",
+    )
     issues: list[ReviewIssue]
     strengths: list[str]
     improvements: list[str]
