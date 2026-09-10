@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "Code Review Agent",
+  "slug": "kestarsheng-code-review-agent",
+  "sourceRepository": "https://github.com/kestarsheng/code-review-agent",
+  "reviewCommit": "f28109a1754b2a0811262dd11b97e0ec361eddb7",
+  "apiBaseUrl": "__API_BASE_URL__/v1",
+  "healthCheckUrl": "__API_BASE_URL__/health",
+  "deploymentProofUrl": "__API_BASE_URL__/.well-known/xagent-verification.json"
+}
