@@ -42,8 +42,21 @@
 - **五维度评分** — 正确性 / 安全性 / 性能 / 可维护性 / 最佳实践各一个 0–100 分，加权得综合分
 - **可直接应用的修复代码** — 规则引擎为 8 类关键规则自动生成 `fix_code`，LLM 覆盖更复杂的修复
 - **三种评审模式** — 单文件代码、Unified Diff（PR 变更）、多文件批量（跨文件架构问题）
+- **CLI 一键评审** — `python cli.py` 直接读 git diff 评审，无需粘贴代码
 - **MCP 工具集** — 7 个工具：评审 / Diff 评审 / 多文件评审 / 安全扫描 / 规则解释 / 修复生成 / 规则列表
 - **交互式演示页** — 暗色模式、代码高亮、维度评分条、引擎可视化、"一键应用修复"
+
+## CLI 一键评审（推荐）
+
+```bash
+python cli.py                    # 评审工作区未提交改动 (git diff)
+python cli.py --staged           # 评审已暂存改动 (git diff --cached)
+python cli.py --commit HEAD~1    # 评审最近一次提交
+python cli.py src/utils.py       # 评审单个文件
+python cli.py --remote           # 用远程 Vercel 部署（无需启动本地服务）
+```
+
+自动读取 git diff → 调 API → 输出带严重度图标、维度评分、修复代码的结构化报告。
 
 ## API 一览
 

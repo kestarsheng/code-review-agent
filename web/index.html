@@ -150,6 +150,10 @@
   <p>双引擎 AI 代码评审 · 规则引擎 + LLM 语义分析 · 交叉验证降低误报 · 分维度评分</p>
 </header>
 <main>
+  <div style="text-align:center;margin-bottom:.8rem;font-size:.82rem;color:var(--muted);">
+    💡 命令行一键评审：<code style="background:var(--hover);padding:.2rem .5rem;border-radius:6px;">python cli.py --commit HEAD~1</code>
+    &nbsp;·&nbsp;<code style="background:var(--hover);padding:.2rem .5rem;border-radius:6px;">python cli.py --remote</code>
+  </div>
   <div class="card">
     <div class="tabs">
       <div class="tab active" id="tab-code" onclick="switchTab('code')">代码评审</div>
@@ -173,6 +177,9 @@ def save_profile(user):
     db.commit()</textarea>
     </div>
     <div id="files-block" style="display:none;">
+      <div style="background:var(--primary-soft);border:1px solid var(--border);border-radius:9px;padding:.6rem .8rem;margin-bottom:.6rem;font-size:.82rem;">
+        💡 <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 可直接评审 git 改动，无需手动粘贴。
+      </div>
       <label>多个文件（用 <code># == 文件名 ==</code> 分隔，每段一个文件）</label>
 
       <textarea id="files-area" spellcheck="false"># == utils.py ==
