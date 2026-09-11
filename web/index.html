@@ -1,173 +1,281 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Code Review Agent - 双引擎 AI 代码评审</title>
+<title>Code Review Agent — 双引擎 AI 代码评审</title>
+<meta name="description" content="规则引擎 + LLM 语义分析 + 交叉验证，输出带分维度评分和可应用修复代码的结构化报告。">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
 <style>
-  :root {
-    --bg: #f4f6fb; --card: #ffffff; --border: #e4e7ef;
-    --text: #1e2440; --muted: #6b7280; --primary: #4f46e5;
-    --primary-soft: #eef2ff; --accent: #0ea5e9;
-    --code-bg: #0f172a; --shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04);
-    --hover: #f8fafc;
-  }
-  [data-theme="dark"] {
-    --bg: #0b1020; --card: #131a2e; --border: #232c45;
-    --text: #e5e9f5; --muted: #8b93a7; --primary: #818cf8;
-    --primary-soft: #1e2340; --accent: #38bdf8;
-    --code-bg: #0a0f1e; --shadow: 0 1px 3px rgba(0,0,0,.4);
-    --hover: #1a2238;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: var(--bg); color: var(--text); transition: background .25s, color .25s;
-  }
-  header {
-    background: linear-gradient(135deg, #312e81, #4f46e5 55%, #0ea5e9);
-    color: #fff; padding: 2.2rem 1rem 1.8rem; text-align: center; position: relative;
-  }
-  header h1 { margin: 0 0 .35rem; font-size: 1.7rem; letter-spacing: .5px; }
-  header p { margin: 0; opacity: .88; font-size: .95rem; }
-  #theme-btn {
-    position: absolute; right: 1rem; top: 1rem; background: rgba(255,255,255,.15);
-    border: 1px solid rgba(255,255,255,.35); color: #fff; border-radius: 99px;
-    padding: .35rem .9rem; cursor: pointer; font-size: .8rem; backdrop-filter: blur(4px);
-  }
-  main { max-width: 1060px; margin: 1.4rem auto; padding: 0 1rem 3rem; }
-  .card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-    padding: 1.25rem; margin-bottom: 1.1rem; box-shadow: var(--shadow);
-    transition: background .25s, border-color .25s;
-  }
-  .card h3 { margin: 0 0 .8rem; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
-  label { font-weight: 600; display: block; margin: .7rem 0 .4rem; font-size: .88rem; }
-  .row { display: flex; gap: .75rem; flex-wrap: wrap; }
-  .row input {
-    flex: 1; min-width: 150px; padding: .55rem .7rem; border: 1px solid var(--border);
-    border-radius: 9px; font-size: .88rem; background: var(--card); color: var(--text);
-    outline: none; transition: border-color .2s;
-  }
-  .row input:focus, textarea:focus { border-color: var(--primary); }
-  textarea, pre.code {
-    width: 100%; min-height: 230px; padding: .8rem; border: 1px solid var(--border);
-    border-radius: 10px; font-family: "Cascadia Code", Consolas, "JetBrains Mono", monospace;
-    font-size: .84rem; resize: vertical; background: var(--card); color: var(--text);
-    outline: none; line-height: 1.55;
-  }
-  pre.code { background: var(--code-bg)!important; color: #e2e8f0!important; min-height: 60px; white-space: pre-wrap; word-break: break-word; border: 0; }
-  button {
-    background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; border: 0; border-radius: 9px;
-    padding: .66rem 1.5rem; font-size: .92rem; cursor: pointer; margin-top: .8rem; font-weight: 600;
-    box-shadow: 0 2px 8px rgba(79,70,229,.25); transition: transform .15s, opacity .2s;
-  }
-  button:hover { transform: translateY(-1px); }
-  button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-  button.secondary {
-    background: transparent; border: 1px solid var(--border); color: var(--text);
-    box-shadow: none; margin-left: .5rem;
-  }
-  .muted { color: var(--muted); font-size: .82rem; }
+/* ═══ Design System ═══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg-2:#0f0f17;--surface:rgba(255,255,255,.03);--surface-2:rgba(255,255,255,.05);
+  --border:rgba(255,255,255,.08);--border-2:rgba(255,255,255,.12);
+  --text:#f4f4f5;--text-2:#a1a1aa;--text-3:#71717a;
+  --primary:#5e6ad2;--primary-2:#6e6af0;--primary-glow:rgba(94,106,210,.4);
+  --accent:#0ea5e9;--success:#22c55e;--warn:#f59e0b;--danger:#ef4444;
+  --radius:12px;--radius-sm:8px;--font:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono","Cascadia Code",Consolas,monospace;
+  --shadow:0 2px 8px rgba(0,0,0,.3);--shadow-lg:0 8px 32px rgba(0,0,0,.4);
+}
+[data-theme="light"]{
+  --bg:#fafafb;--bg-2:#f4f4f7;--surface:rgba(0,0,0,.02);--surface-2:rgba(0,0,0,.04);
+  --border:rgba(0,0,0,.08);--border-2:rgba(0,0,0,.12);
+  --text:#18181b;--text-2:#52525b;--text-3:#a1a1aa;
+  --shadow:0 2px 8px rgba(0,0,0,.06);--shadow-lg:0 8px 32px rgba(0,0,0,.08);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;transition:background .3s,color .3s}
+a{color:inherit;text-decoration:none}
+code{font-family:var(--mono);font-size:.85em}
 
-  .tabs { display: flex; gap: .45rem; margin-bottom: .6rem; flex-wrap: wrap; }
-  .tab { padding: .45rem .95rem; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: .86rem; transition: all .2s; }
-  .tab.active { background: var(--primary); color: #fff; }
-  .tab:not(.active) { background: var(--hover); color: var(--muted); border: 1px solid var(--border); }
+/* ═══ Nav ═══ */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(12px);background:rgba(10,10,15,.7);border-bottom:1px solid var(--border);transition:background .3s}
+[data-theme="light"] nav{background:rgba(250,250,251,.8)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;letter-spacing:-.02em}
+.nav-logo .dot{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:.85rem;color:var(--text-2);transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.theme-toggle{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+.theme-toggle:hover{border-color:var(--border-2);background:var(--surface-2)}
+.nav-cta{font-size:.82rem;font-weight:600;padding:7px 14px;border-radius:8px;background:var(--primary);color:#fff;border:0;cursor:pointer;transition:all .2s}
+.nav-cta:hover{background:var(--primary-2);transform:translateY(-1px)}
+@media(max-width:768px){.nav-links{display:none}}
 
-  /* ── Result header ── */
-  .result-head { display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap; margin-bottom: .6rem; }
-  .score-circle {
-    width: 92px; height: 92px; border-radius: 50%; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
-    background: conic-gradient(var(--score-color) calc(var(--score-val) * 1%), rgba(255,255,255,.12) 0);
-  }
-  .score-circle::before { content: ""; position: absolute; width: 78px; height: 78px; border-radius: 50%; background: var(--card); }
-  .score-circle .val { position: relative; font-size: 1.5rem; font-weight: 800; line-height: 1; z-index: 1; }
-  .score-circle .grade { position: relative; font-size: .78rem; opacity: .9; z-index: 1; }
-  .result-meta { flex: 1; min-width: 200px; }
-  .result-meta h4 { margin: 0 0 .3rem; font-size: 1.05rem; }
+/* ═══ Hero ═══ */
+.hero{position:relative;padding:140px 24px 80px;text-align:center;overflow:hidden}
+.hero-bg{position:absolute;inset:0;z-index:0;opacity:.5}
+.hero-bg::before{content:"";position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse,rgba(94,106,210,.15),transparent 60%);filter:blur(40px)}
+.hero-bg::after{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border-2),transparent)}
+.hero-content{position:relative;z-index:1;max-width:720px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:.78rem;color:var(--text-2);margin-bottom:24px}
+.hero-badge .pulse{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-bottom:16px}
+.hero h1 .grad{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 32px}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;font-size:.9rem;border:0;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px var(--primary-glow)}
+.btn-primary:hover{background:var(--primary-2);transform:translateY(-2px);box-shadow:0 8px 24px var(--primary-glow)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;border:1px solid var(--border-2);background:var(--surface);color:var(--text);font-weight:600;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn-ghost:hover{background:var(--surface-2);border-color:var(--primary);transform:translateY(-1px)}
+.hero-stats{display:flex;gap:40px;justify-content:center;margin-top:48px}
+.hero-stat{text-align:center}
+.hero-stat .num{font-size:1.6rem;font-weight:800;letter-spacing:-.02em}
+.hero-stat .lbl{font-size:.78rem;color:var(--text-3);margin-top:2px}
 
-  /* ── Dimension bars ── */
-  .dim-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .7rem; margin: .6rem 0; }
-  .dim { background: var(--hover); border-radius: 10px; padding: .6rem .8rem; }
-  .dim .dim-head { display: flex; justify-content: space-between; font-size: .8rem; font-weight: 600; margin-bottom: .35rem; }
-  .dim .bar { height: 7px; border-radius: 99px; background: var(--border); overflow: hidden; }
-  .dim .bar i { display: block; height: 100%; border-radius: 99px; transition: width .8s ease; }
+/* ═══ Section ═══ */
+section{padding:80px 24px}
+.section-inner{max-width:1200px;margin:0 auto}
+.section-head{text-align:center;margin-bottom:48px}
+.section-head h2{font-size:clamp(1.5rem,3vw,2rem);font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.section-head p{color:var(--text-2);font-size:.95rem;max-width:480px;margin:0 auto}
 
-  /* ── Engine stats ── */
-  .engine-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .7rem; margin: .5rem 0 .2rem; }
-  .eng-stat { border: 1px solid var(--border); border-radius: 10px; padding: .65rem .8rem; text-align: center; background: var(--hover); }
-  .eng-stat .num { font-size: 1.35rem; font-weight: 800; }
-  .eng-stat .lbl { font-size: .76rem; color: var(--muted); margin-top: .15rem; }
-  .eng-stat.rule .num { color: #10b981; } .eng-stat.llm .num { color: #3b82f6; }
-  .eng-stat.conf .num { color: #8b5cf6; }
+/* ═══ Features ═══ */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.feature-card{padding:24px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);transition:all .3s;position:relative;overflow:hidden}
+.feature-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--primary),transparent);opacity:0;transition:opacity .3s}
+.feature-card:hover{border-color:var(--border-2);background:var(--surface-2);transform:translateY(-2px)}
+.feature-card:hover::before{opacity:1}
+.feature-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;background:var(--surface-2);border:1px solid var(--border)}
+.feature-card h3{font-size:1rem;font-weight:700;margin-bottom:6px}
+.feature-card p{font-size:.85rem;color:var(--text-2);line-height:1.5}
 
-  /* ── Issues ── */
-  .issue {
-    border: 1px solid var(--border); border-left: 4px solid #d1d5db; border-radius: 0 10px 10px 0;
-    padding: .65rem .9rem; margin: .6rem 0; background: var(--hover); cursor: pointer;
-    transition: background .2s;
-  }
-  .issue:hover { background: var(--card); }
-  .issue.open { background: var(--card); }
-  .issue-head { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; font-size: .87rem; font-weight: 600; }
-  .issue-det { display: none; margin-top: .6rem; }
-  .issue.open .issue-det { display: block; }
-  .issue-det p { margin: .3rem 0; font-size: .85rem; }
-  .badge {
-    display: inline-block; padding: .13rem .5rem; border-radius: 99px; font-size: .72rem; font-weight: 700;
-  }
-  .b-critical { background:#fee2e2; color:#b91c1c; } .b-major { background:#ffedd5; color:#c2410c; }
-  .b-minor { background:#fef9c3; color:#a16207; } .b-info { background:#dbeafe; color:#1d4ed8; }
-  .b-rule { background:#d1fae5; color:#065f46; } .b-llm { background:#dbeafe; color:#1e40af; }
-  .b-confirmed { background:#ede9fe; color:#5b21b6; }
-  [data-theme="dark"] .b-critical { background:#3f1d1d; color:#fca5a5; }
-  [data-theme="dark"] .b-major { background:#3f2a1d; color:#fdba74; }
-  [data-theme="dark"] .b-minor { background:#3d361d; color:#fde047; }
-  [data-theme="dark"] .b-info { background:#1e293b; color:#93c5fd; }
-  [data-theme="dark"] .b-rule { background:#143326; color:#6ee7b7; }
-  [data-theme="dark"] .b-llm { background:#1e293b; color:#93c5fd; }
-  [data-theme="dark"] .b-confirmed { background:#2e2447; color:#c4b5fd; }
+/* ═══ Demo ═══ */
+.demo-section{background:var(--bg-2)}
+.demo-card{max-width:960px;margin:0 auto;border-radius:16px;border:1px solid var(--border);background:var(--bg);overflow:hidden;box-shadow:var(--shadow-lg)}
+.demo-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 4px}
+.demo-tab{padding:14px 18px;font-size:.85rem;font-weight:600;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.demo-tab:hover{color:var(--text-2)}
+.demo-tab.active{color:var(--text);border-bottom-color:var(--primary)}
+.demo-body{padding:24px}
+.demo-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.demo-row input{flex:1;min-width:140px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;background:var(--surface);color:var(--text);outline:none;transition:border-color .2s}
+.demo-row input:focus{border-color:var(--primary)}
+textarea,pre.code{width:100%;min-height:200px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--mono);font-size:.82rem;resize:vertical;background:var(--bg-2);color:var(--text);outline:none;line-height:1.6;transition:border-color .2s}
+textarea:focus{border-color:var(--primary)}
+pre.code{background:#0d1117!important;color:#e2e8f0!important;min-height:60px;white-space:pre-wrap;word-break:break-word;border:0;padding:12px;border-radius:var(--radius-sm)}
+.demo-hint{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--text-2)}
+.demo-hint b{color:var(--text)}
+.demo-hint code{background:var(--surface-2);padding:2px 6px;border-radius:5px}
+.btn-run{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:var(--radius-sm);background:var(--primary);color:#fff;font-weight:600;font-size:.88rem;border:0;cursor:pointer;margin-top:12px;transition:all .2s}
+.btn-run:hover{background:var(--primary-2);transform:translateY(-1px)}
+.btn-run:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.demo-status{font-size:.8rem;color:var(--text-3);margin-top:8px}
 
-  .copy-btn {
-    background: var(--primary-soft); color: var(--primary); border: 1px solid var(--border);
-    border-radius: 7px; font-size: .76rem; padding: .28rem .6rem; cursor: pointer; margin-top: .4rem;
-  }
-  .apply-btn { background: #10b981; color: #fff; }
-  .tag { color: var(--muted); font-size: .78rem; }
-  .ok-bar { border-left-color: #22c55e; }
-  .ok-bar.open { background: var(--card); }
-  ul.plain { margin: .4rem 0; padding-left: 1.1rem; } ul.plain li { margin: .25rem 0; font-size: .88rem; }
-  .fix-block { margin-top: .5rem; }
+/* ═══ Report ═══ */
+.report-card{max-width:960px;margin:16px auto 0;border-radius:16px;border:1px solid var(--border);background:var(--bg);padding:24px;box-shadow:var(--shadow)}
+.report-empty{color:var(--text-3);text-align:center;padding:40px 0;font-size:.9rem}
+.report-head{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.score-ring{width:80px;height:80px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.score-ring::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--bg)}
+.score-ring .val{position:relative;z-index:1;font-size:1.4rem;font-weight:800;line-height:1}
+.score-ring .grade{position:relative;z-index:1;font-size:.72rem;color:var(--text-3)}
+.report-meta{flex:1;min-width:200px}
+.report-meta h4{font-size:.95rem;font-weight:600;margin-bottom:4px;line-height:1.4}
+.report-meta .sub{font-size:.8rem;color:var(--text-3)}
+.dim-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:16px 0}
+.dim{background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px}
+.dim-top{display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;margin-bottom:5px}
+.dim-bar{height:6px;border-radius:99px;background:var(--border);overflow:hidden}
+.dim-bar i{display:block;height:100%;border-radius:99px;transition:width .8s ease}
+.eng-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.eng{border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center;background:var(--surface)}
+.eng .n{font-size:1.2rem;font-weight:800}
+.eng .l{font-size:.72rem;color:var(--text-3);margin-top:2px}
+.eng.rule .n{color:var(--success)}.eng.llm .n{color:var(--primary)}.eng.conf .n{color:#a855f7}
+.issue{border:1px solid var(--border);border-left:3px solid var(--text-3);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 14px;margin:8px 0;background:var(--surface);cursor:pointer;transition:all .2s}
+.issue:hover{background:var(--surface-2);border-left-color:var(--primary)}
+.issue.open{background:var(--surface-2)}
+.issue-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.84rem;font-weight:600}
+.issue-body{display:none;margin-top:10px}
+.issue.open .issue-body{display:block}
+.issue-body p{margin:6px 0;font-size:.82rem}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:700}
+.b-critical{background:rgba(239,68,68,.15);color:#f87171}.b-major{background:rgba(249,115,22,.15);color:#fb923c}
+.b-minor{background:rgba(245,158,11,.15);color:#fbbf24}.b-info{background:rgba(59,130,246,.15);color:#60a5fa}
+.b-rule{background:rgba(34,197,94,.15);color:#4ade80}.b-llm{background:rgba(94,106,210,.15);color:#818cf8}
+.b-confirmed{background:rgba(168,85,247,.15);color:#c084fc}
+.tag{color:var(--text-3);font-size:.76rem}
+.fix-block{margin-top:8px}
+.copy-btn{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border);border-radius:6px;font-size:.74rem;padding:4px 10px;cursor:pointer;margin-top:6px;transition:all .2s}
+.copy-btn:hover{border-color:var(--primary);color:var(--text)}
+.copy-btn.apply{background:var(--success);color:#fff;border-color:var(--success)}
+ul.plain{margin:8px 0;padding-left:18px}ul.plain li{margin:4px 0;font-size:.85rem}
+.report-section-title{font-size:.88rem;font-weight:700;margin:20px 0 8px;display:flex;align-items:center;gap:6px}
+
+/* ═══ API Section ═══ */
+.api-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:960px;margin:0 auto}
+.api-card{padding:20px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);transition:all .2s}
+.api-card:hover{border-color:var(--border-2);background:var(--surface-2)}
+.api-method{display:inline-block;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:700;font-family:var(--mono)}
+.api-get{background:rgba(34,197,94,.15);color:#4ade80}
+.api-post{background:rgba(94,106,210,.15);color:#818cf8}
+.api-card .path{font-family:var(--mono);font-size:.85rem;margin:8px 0;color:var(--text)}
+.api-card .desc{font-size:.8rem;color:var(--text-2)}
+
+/* ═══ Footer ═══ */
+footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-2)}
+.footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.footer-left{display:flex;align-items:center;gap:10px}
+.footer-left .dot{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.footer-left span{font-weight:700;font-size:.9rem}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-size:.82rem;color:var(--text-3);transition:color .2s}
+.footer-links a:hover{color:var(--text)}
+.footer-copy{font-size:.78rem;color:var(--text-3)}
+
+/* ═══ Toast ═══ */
+#toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);padding:8px 18px;border-radius:99px;font-size:.82rem;z-index:200;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .3s}
 </style>
 </head>
 <body>
-<header>
-  <button id="theme-btn" onclick="toggleTheme()">🌙 暗色</button>
-  <h1>Code Review Agent</h1>
-  <p>双引擎 AI 代码评审 · 规则引擎 + LLM 语义分析 · 交叉验证降低误报 · 分维度评分</p>
-</header>
-<main>
-  <div style="text-align:center;margin-bottom:.8rem;font-size:.82rem;color:var(--muted);">
-    💡 命令行一键评审：<code style="background:var(--hover);padding:.2rem .5rem;border-radius:6px;">python cli.py --commit HEAD~1</code>
-    &nbsp;·&nbsp;<code style="background:var(--hover);padding:.2rem .5rem;border-radius:6px;">python cli.py --remote</code>
+
+<!-- ═══ Nav ═══ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo"><span class="dot">🔍</span> Code Review Agent</a>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#demo">在线试用</a>
+      <a href="#api">API</a>
+      <a href="https://github.com/kestarsheng/code-review-agent" target="_blank">GitHub</a>
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀️</button>
+      <button class="nav-cta" onclick="document.getElementById('demo').scrollIntoView()">立即试用</button>
+    </div>
   </div>
-  <div class="card">
-    <div class="tabs">
-      <div class="tab active" id="tab-code" onclick="switchTab('code')">代码评审</div>
-      <div class="tab" id="tab-diff" onclick="switchTab('diff')">Diff 评审</div>
-      <div class="tab" id="tab-files" onclick="switchTab('files')">多文件评审</div>
-      <div class="tab" id="tab-fix" onclick="switchTab('fix')">自动修复</div>
+</nav>
+
+<!-- ═══ Hero ═══ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="pulse"></span> 双引擎交叉验证 · 53 测试全绿 · 生产就绪</div>
+    <h1>让每一行代码<br>都经过<span class="grad"> 双引擎评审</span></h1>
+    <p>规则引擎做确定性静态扫描，LLM 做语义级深度分析，交叉验证降低误报。输出五维度评分和可直接应用的修复代码。</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('demo').scrollIntoView()">🚀 在线试用</button>
+      <button class="btn-ghost" onclick="copyCli()">📋 复制 CLI 命令</button>
     </div>
-    <div class="row" style="margin-bottom:.4rem;">
-      <input id="language" placeholder="语言 (python / java / js / go ...)" value="python">
-      <input id="context" placeholder="任务上下文（可选）" style="flex:2;">
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">22</div><div class="lbl">内置规则</div></div>
+      <div class="hero-stat"><div class="num">5</div><div class="lbl">维度评分</div></div>
+      <div class="hero-stat"><div class="num">7</div><div class="lbl">MCP 工具</div></div>
+      <div class="hero-stat"><div class="num">4</div><div class="lbl">语言覆盖</div></div>
     </div>
-    <div id="single-block">
-      <label for="code" id="code-label">源代码</label>
-      <textarea id="code" spellcheck="false">def get_user(user_id):
+  </div>
+</section>
+
+<!-- ═══ Features ═══ -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-head">
+      <h2>为什么选择双引擎</h2>
+      <p>单一规则引擎只能发现已知模式，单一 LLM 容易漏报。双引擎交叉验证兼顾确定性与深度。</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>规则引擎 — 确定性扫描</h3>
+        <p>22 条跨语言规则覆盖安全漏洞、性能反模式、AI 幻觉模式。毫秒级返回，零 API 成本，离线可跑。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>LLM 语义分析 — 深度理解</h3>
+        <p>接收规则预检结果后做语义级评审：逻辑错误、架构缺陷、业务边界。确认或否定规则命中，消除误报。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✅</div>
+        <h3>交叉验证 — 三级溯源</h3>
+        <p>每个 issue 标注来源：rule（仅规则）、llm（仅 LLM）、confirmed（双引擎一致）。置信度自动提升。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>五维度评分 — 量化质量</h3>
+        <p>正确性、安全性、性能、可维护性、最佳实践各 0–100 分。综合分按安全 30% + 正确性 25% 加权。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔧</div>
+        <h3>修复代码 — 可直接应用</h3>
+        <p>每个 issue 附带 fix_code 片段，复制即可替换。规则引擎为 8 类关键规则自动生成，LLM 覆盖复杂场景。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <h3>MCP + REST — 双协议</h3>
+        <p>7 个 MCP 工具供 Agent 调用，REST API 供集成。远程 /mcp 端点与 /v1/* 共存于同一服务器。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Demo ═══ -->
+<section id="demo" class="demo-section">
+  <div class="section-inner">
+    <div class="section-head">
+      <h2>在线试用</h2>
+      <p>粘贴代码或 diff，点击评审。也可用 CLI 一键评审 git 改动：<code>python cli.py --commit HEAD~1</code></p>
+    </div>
+    <div class="demo-card">
+      <div class="demo-tabs">
+        <div class="demo-tab active" id="tab-code" onclick="switchTab('code')">代码评审</div>
+        <div class="demo-tab" id="tab-diff" onclick="switchTab('diff')">Diff 评审</div>
+        <div class="demo-tab" id="tab-files" onclick="switchTab('files')">多文件</div>
+        <div class="demo-tab" id="tab-fix" onclick="switchTab('fix')">自动修复</div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-row">
+          <input id="language" placeholder="语言 (python / java / js / go)" value="python">
+          <input id="context" placeholder="任务上下文（可选）" style="flex:2;">
+        </div>
+        <div id="single-block">
+          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px" id="code-label">源代码</label>
+          <textarea id="code" spellcheck="false">def get_user(user_id):
     query = f"SELECT * FROM users WHERE id = {user_id}"
     return db.execute(query).fetchone()
 
@@ -175,14 +283,11 @@ def save_profile(user):
     password = "hardcoded123456"
     db.execute(f"UPDATE users SET bio = '{user['bio']}' WHERE id = {user['id']}")
     db.commit()</textarea>
-    </div>
-    <div id="files-block" style="display:none;">
-      <div style="background:var(--primary-soft);border:1px solid var(--border);border-radius:9px;padding:.6rem .8rem;margin-bottom:.6rem;font-size:.82rem;">
-        💡 <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 可直接评审 git 改动，无需手动粘贴。
-      </div>
-      <label>多个文件（用 <code># == 文件名 ==</code> 分隔，每段一个文件）</label>
-
-      <textarea id="files-area" spellcheck="false"># == utils.py ==
+        </div>
+        <div id="files-block" style="display:none;">
+          <div class="demo-hint">💡 <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 直接评审 git 改动，无需手动粘贴。</div>
+          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">多文件（用 <code># == 文件名 ==</code> 分隔）</label>
+          <textarea id="files-area" spellcheck="false"># == utils.py ==
 import os
 
 def load_config(path):
@@ -197,257 +302,204 @@ def handler(event, context):
     cfg = load_config("config.txt")
     result = eval(event["body"])
     return {"statusCode": 200, "body": result}</textarea>
+        </div>
+        <button class="btn-run" id="btn">▶ 开始评审</button>
+        <div class="demo-status" id="status"></div>
+      </div>
     </div>
-    <button id="btn">开始评审</button>
-    <p class="muted" id="status"></p>
+    <div class="report-card" id="result-card">
+      <div class="report-empty" id="report">点击「开始评审」查看结果</div>
+    </div>
+    <div class="report-card" id="fix-card" style="display:none;">
+      <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px">🔧 修复方案</h3>
+      <div id="fix-report"></div>
+    </div>
   </div>
+</section>
 
-  <div class="card" id="result-card">
-    <h3>📋 评审报告</h3>
-    <div id="report"><p class="muted">尚未评审。点击「开始评审」调用双引擎评审。</p></div>
+<!-- ═══ API ═══ -->
+<section id="api">
+  <div class="section-inner">
+    <div class="section-head">
+      <h2>API 一览</h2>
+      <p>REST API 与 MCP 工具共存于同一服务器，部署后即可使用。</p>
+    </div>
+    <div class="api-grid">
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review</div><div class="desc">评审源代码，返回五维度评分 + 问题列表 + 修复代码</div></div>
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_diff</div><div class="desc">评审 Unified Diff，返回变更元数据 + 评审报告</div></div>
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_files</div><div class="desc">多文件批量评审，per-file 扫描 + 跨文件架构分析</div></div>
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/suggest_fix</div><div class="desc">为问题代码生成完整修复版本（fixed_code + 变更说明）</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules</span></div><div class="desc">列出全部 22 条规则引擎规则</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules/{rule_id}</div><div class="desc">查看单条规则详情与修复指引</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/mcp</div><div class="desc">远程 MCP streamable HTTP 端点（7 个工具）</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/health</div><div class="desc">健康检查，返回部署 commit</div></div>
+    </div>
   </div>
-  <div class="card" id="fix-card" style="display:none;">
-    <h3>🔧 修复方案</h3>
-    <div id="fix-report"></div>
+</section>
+
+<!-- ═══ Footer ═══ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">
+      <span class="dot">🔍</span>
+      <span>Code Review Agent</span>
+    </div>
+    <div class="footer-links">
+      <a href="#features">功能</a>
+      <a href="#demo">试用</a>
+      <a href="#api">API</a>
+      <a href="https://github.com/kestarsheng/code-review-agent" target="_blank">GitHub</a>
+      <a href="https://code-review-agent-ashy-six.vercel.app/docs" target="_blank">Swagger</a>
+    </div>
+    <div class="footer-copy">X-Agent Hackathon 2026 · kestarsheng</div>
   </div>
-</main>
+</footer>
+
+<div id="toast"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
 <script>
-let mode = 'code';
-const btn = document.getElementById('btn');
-const statusEl = document.getElementById('status');
-const reportEl = document.getElementById('report');
-const fixReportEl = document.getElementById('fix-report');
-const fixCard = document.getElementById('fix-card');
-const codeEl = document.getElementById('code');
-const filesBlock = document.getElementById('files-block');
-const singleBlock = document.getElementById('single-block');
-
-function toggleTheme() {
-  const cur = document.documentElement.getAttribute('data-theme');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ 亮色' : '🌙 暗色';
-  try { localStorage.setItem('cr-theme', next); } catch(e) {}
+/* ═══ Theme ═══ */
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  document.getElementById('theme-btn').textContent=next==='dark'?'☀️':'🌙';
+  try{localStorage.setItem('cr-theme',next)}catch(e){}
 }
-(function(){ try {
-  const saved = localStorage.getItem('cr-theme');
-  if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('theme-btn').textContent = '☀️ 亮色'; }
-} catch(e) {} })();
+(function(){try{const s=localStorage.getItem('cr-theme')||'dark';document.documentElement.setAttribute('data-theme',s);document.getElementById('theme-btn').textContent=s==='dark'?'☀️':'🌙'}catch(e){}})();
 
-function switchTab(tab) {
-  mode = tab;
-  ['code','diff','files','fix'].forEach(t =>
-    document.getElementById('tab-'+t).classList.toggle('active', t === tab));
-  const isFiles = tab === 'files';
-  filesBlock.style.display = isFiles ? 'block' : 'none';
-  singleBlock.style.display = (tab === 'fix') ? 'block' : (isFiles ? 'none' : 'block');
-  fixCard.style.display = 'none';
-  const label = document.getElementById('code-label');
-  if (tab === 'diff') {
-    label.textContent = 'Unified Diff';
-    codeEl.placeholder = '粘贴 git diff 输出...';
-  } else if (tab === 'fix') {
-    label.textContent = '待修复代码';
-    codeEl.placeholder = '粘贴有问题的代码...';
+/* ═══ CLI copy ═══ */
+function copyCli(){
+  navigator.clipboard.writeText('python cli.py --commit HEAD~1 --remote').then(()=>toast('已复制 CLI 命令 ✅')).catch(()=>toast('复制失败'))
+}
+let toastT=null;
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.style.opacity='1';clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity='0',1800)}
 
-  } else {
-    label.textContent = '源代码';
-    codeEl.placeholder = '粘贴要评审的代码...';
-    codeEl.rows = undefined;
-  }
+/* ═══ Demo logic ═══ */
+let mode='code';
+const btn=document.getElementById('btn');
+const statusEl=document.getElementById('status');
+const reportEl=document.getElementById('report');
+const fixReportEl=document.getElementById('fix-report');
+const fixCard=document.getElementById('fix-card');
+const codeEl=document.getElementById('code');
+const filesBlock=document.getElementById('files-block');
+const singleBlock=document.getElementById('single-block');
+
+function switchTab(tab){
+  mode=tab;
+  ['code','diff','files','fix'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===tab));
+  const isFiles=tab==='files';
+  filesBlock.style.display=isFiles?'block':'none';
+  singleBlock.style.display=(tab==='fix')?'block':(isFiles?'none':'block');
+  fixCard.style.display='none';
+  const label=document.getElementById('code-label');
+  if(tab==='diff'){label.textContent='Unified Diff';codeEl.placeholder='粘贴 git diff 输出...'}
+  else if(tab==='fix'){label.textContent='待修复代码';codeEl.placeholder='粘贴有问题的代码...'}
+  else{label.textContent='源代码';codeEl.placeholder='粘贴要评审的代码...'}
 }
 
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function gradeColor(g) {
-  if (g === 'A') return '#22c55e'; if (g === 'B') return '#3b82f6';
-  if (g === 'C') return '#f59e0b'; return '#ef4444';
-}
-function hl(code, lang) {
-  let text = String(code||'');
-  if (window.hljs && text.trim()) {
-    try {
-      const want = (lang||'python').toLowerCase();
-      return hljs.highlight(text, {language: hljs.getLanguage(want) ? want : 'python'}).value;
-    } catch(e) {}
-    try { return hljs.highlightAuto(text).value; } catch(e) {}
-  }
-  const kw = /\b(def|class|import|from|return|if|elif|else|for|while|try|except|with|async|await|const|let|var|function|export|new|throw|public|private|static|int|str|float|bool)\b/g;
-  let html = esc(text);
-  html = html.replace(/(#|<!--)[^\n]*/g, '<span style="color:#64748b">$&</span>');
-  html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g, '<span style="color:#f59e0b">$1</span>');
-  html = html.replace(kw, '<span style="color:#c084fc">$1</span>');
-  html = html.replace(/\b(\d+\.?\d*)\b/g, '<span style="color:#38bdf8">$1</span>');
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function attrEsc(s){return esc(s).replace(/"/g,'&quot;')}
+function gradeColor(g){return{'A':'#22c55e','B':'#3b82f6','C':'#f59e0b','D':'#ef4444'}[g]||'#71717a'}
+
+function hl(code,lang){
+  let text=String(code||'');
+  if(window.hljs&&text.trim()){try{const w=(lang||'python').toLowerCase();return hljs.highlight(text,{language:hljs.getLanguage(w)?w:'python'}).value}catch(e){}try{return hljs.highlightAuto(text).value}catch(e){}}
+  let html=esc(text);
+  html=html.replace(/(#[^\n]*)/g,'<span style="color:#64748b">$1</span>');
+  html=html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,'<span style="color:#f59e0b">$1</span>');
+  html=html.replace(/\b(def|class|import|from|return|if|elif|else|for|while|try|except|with|async|await|const|let|var|function)\b/g,'<span style="color:#c084fc">$1</span>');
   return html;
 }
-function renderDimensionScores(dim) {
-  if (!dim) return '';
-  const labels = {correctness:'正确性', security:'安全性', performance:'性能', maintainability:'可维护性', best_practice:'最佳实践'};
-  const colors = {correctness:'#3b82f6', security:'#ef4444', performance:'#f59e0b', maintainability:'#10b981', best_practice:'#8b5cf6'};
-  return `<div class="dim-list">` + Object.keys(labels).map(k => {
-    const v = (dim[k] ?? 0);
-    const c = v >= 85 ? '#22c55e' : v >= 70 ? '#3b82f6' : v >= 50 ? '#f59e0b' : '#ef4444';
-    return `<div class="dim">
-      <div class="dim-head"><span>${labels[k]}</span><span style="color:${c}">${v}</span></div>
-      <div class="bar"><i style="width:${v}%;background:${c}"></i></div>
-    </div>`;
-  }).join('') + `</div>`;
+
+function renderDims(dim){
+  if(!dim)return'';
+  const labels={correctness:'正确性',security:'安全性',performance:'性能',maintainability:'可维护性',best_practice:'最佳实践'};
+  return'<div class="dim-grid">'+Object.keys(labels).map(k=>{
+    const v=dim[k]??0;const c=v>=85?'#22c55e':v>=70?'#3b82f6':v>=50?'#f59e0b':'#ef4444';
+    return`<div class="dim"><div class="dim-top"><span>${labels[k]}</span><span style="color:${c}">${v}</span></div><div class="dim-bar"><i style="width:${v}%;background:${c}"></i></div></div>`;
+  }).join('')+'</div>';
 }
-function renderEngineInfo(info) {
-  if (!info || !info.engines) return '';
-  return `<div class="engine-grid">
-    <div class="eng-stat rule"><div class="num">${info.rule_count||0}</div><div class="lbl">⚡ 规则引擎命中</div></div>
-    <div class="eng-stat llm"><div class="num">${info.llm_count||0}</div><div class="lbl">🧠 LLM 语义发现</div></div>
-    <div class="eng-stat conf"><div class="num">${info.confirmed_count||0}</div><div class="lbl">✅ 交叉验证确认</div></div>
-    <div class="eng-stat"><div class="num">${info.total_rules_run||0}</div><div class="lbl">🔍 规则执行次数</div></div>
+
+function renderEng(info){
+  if(!info||!info.engines)return'';
+  return`<div class="eng-grid">
+    <div class="eng rule"><div class="n">${info.rule_count||0}</div><div class="l">⚡ 规则命中</div></div>
+    <div class="eng llm"><div class="n">${info.llm_count||0}</div><div class="l">🧠 LLM 发现</div></div>
+    <div class="eng conf"><div class="n">${info.confirmed_count||0}</div><div class="l">✅ 交叉确认</div></div>
+    <div class="eng"><div class="n">${info.total_rules_run||0}</div><div class="l">🔍 规则执行</div></div>
   </div>`;
 }
-function copyText(text) {
-  navigator.clipboard.writeText(text||'').then(() => toast('已复制 ✅')).catch(() => toast('复制失败'));
-}
-function applyFix(i) {
-  const code = document.getElementById('code');
-  if (code) { code.value = (i.fix_code||''); statusEl.textContent = '已应用修复代码到输入框，可再次评审验证。'; }
-}
 
-let toastTimer = null;
-function toast(msg) {
-  let el = document.getElementById('toast');
-  if (!el) { el = document.createElement('div'); el.id='toast';
-    el.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:.5rem 1.1rem;border-radius:99px;font-size:.85rem;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.25);';
-    document.body.appendChild(el); }
-  el.textContent = msg; el.style.opacity = '1';
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.opacity = '0', 1800);
-}
-
-function attrEsc(s) {
-  return esc(s).replace(/"/g, '&quot;');
-}
-function renderIssues(report) {
-  if (!report.issues || !report.issues.length) return '<p class="muted">✅ 未发现问题。</p>';
-  return report.issues.map((i, idx) => {
-    const line = i.line ? ` · 行 ${i.line}` : '';
-    const src = i.source ? `<span class="badge b-${i.source}">${i.source}</span>` : '';
-    const ruleId = i.rule_id ? `<span class="tag">${esc(i.rule_id)}</span>` : '';
-    const conf = (i.confidence != null) ? ` <span class="tag">置信度 ${(i.confidence*100|0)}%</span>` : '';
-    const fix = i.fix_code ? `<div class="fix-block">
-      <p class="muted" style="margin-bottom:.3rem;">修复代码（可直接应用）：</p>
-      <pre class="code"><code class="language-python">${hl(i.fix_code)}</code></pre>
-      <button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(i.fix_code)}">📋 复制修复</button>
-      <button class="copy-btn apply-btn" onclick="applyFix(report.issues[${idx}])">⚡ 应用到输入框</button>
-    </div>` : '';
-    return `<div class="issue" onclick="this.classList.toggle('open')">
-      <div class="issue-head">
-        <span class="badge b-${i.severity}">${i.severity}</span> ${src}
-        <span>${esc(i.title)}</span>${line} ${ruleId} ${conf}
-      </div>
-      <div class="issue-det">
-        <p><b>类别：</b>${esc(i.category)}</p>
-        <p>${esc(i.description)}</p>
-        <p class="muted"><b>建议：</b>${esc(i.suggestion)}</p>
-        ${fix}
-      </div>
-    </div>`;
+function renderIssues(report){
+  if(!report.issues||!report.issues.length)return'<p style="color:var(--text-3)">✅ 未发现问题</p>';
+  return report.issues.map((i,idx)=>{
+    const line=i.line?` · 行${i.line}`:'';
+    const src=i.source?`<span class="badge b-${i.source}">${i.source}</span>`:'';
+    const rid=i.rule_id?`<span class="tag">${esc(i.rule_id)}</span>`:'';
+    const conf=(i.confidence!=null)?`<span class="tag">${(i.confidence*100|0)}%</span>`:'';
+    const fix=i.fix_code?`<div class="fix-block"><p style="color:var(--text-3);font-size:.78rem;margin-bottom:4px">修复代码：</p><pre class="code"><code>${hl(i.fix_code)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(i.fix_code)}">📋 复制</button><button class="copy-btn apply" onclick="applyFix(${idx})">⚡ 应用</button></div>`:'';
+    return`<div class="issue" onclick="this.classList.toggle('open')"><div class="issue-top"><span class="badge b-${i.severity}">${i.severity}</span>${src}${esc(i.title)}${line}${rid}${conf}</div><div class="issue-body"><p><b>类别：</b>${esc(i.category)}</p><p>${esc(i.description)}</p><p style="color:var(--text-3)"><b>建议：</b>${esc(i.suggestion)}</p>${fix}</div></div>`;
   }).join('');
 }
 
-function renderReport(r, model) {
-  const scoreColor = gradeColor(r.grade);
-  const gradient = `background: conic-gradient(${scoreColor} calc(${r.score} * 1%), var(--border) 0);`;
-  return `
-    <div class="result-head">
-      <div class="score-circle" style="${gradient};--score-val:${r.score};">
-        <span class="val" style="color:${scoreColor}">${r.score}</span>
-        <span class="grade" style="color:var(--muted)">${r.grade} 级</span>
-      </div>
-      <div class="result-meta">
-        <h4>${esc(r.summary)}</h4>
-        <p class="muted">模型：${esc(model||'')} · 共 ${(r.issues||[]).length} 个问题</p>
-      </div>
+function renderReport(r,model){
+  const sc=gradeColor(r.grade);
+  return`<div class="report-head">
+    <div class="score-ring" style="background:conic-gradient(${sc} ${r.score*3.6}deg,var(--border) 0)">
+      <span class="val" style="color:${sc}">${r.score}</span><span class="grade">${r.grade}级</span>
     </div>
-    ${renderEngineInfo(r.engine_info)}
-    <h3 style="margin-top:.9rem;">📊 分维度评分</h3>
-    ${renderDimensionScores(r.dimension_scores)}
-    <h3 style="margin-top:1rem;">🚨 问题列表 (${(r.issues||[]).length})</h3>
-    ${renderIssues(r)}
-    ${(r.strengths && r.strengths.length) ? `<h3 style="margin-top:1rem;">👍 代码优点</h3><ul class="plain">${r.strengths.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>` : ''}
-    ${(r.improvements && r.improvements.length) ? `<h3 style="margin-top:.6rem;">🚀 改进方向</h3><ul class="plain">${r.improvements.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>` : ''}
-  `;
+    <div class="report-meta"><h4>${esc(r.summary)}</h4><div class="sub">模型：${esc(model||'')} · ${(r.issues||[]).length} 个问题</div></div>
+  </div>${renderEng(r.engine_info)}<div class="report-section-title">📊 分维度评分</div>${renderDims(r.dimension_scores)}<div class="report-section-title">🚨 问题 (${(r.issues||[]).length})</div>${renderIssues(r)}${(r.strengths&&r.strengths.length)?`<div class="report-section-title">👍 优点</div><ul class="plain">${r.strengths.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>`:''}${(r.improvements&&r.improvements.length)?`<div class="report-section-title">🚀 改进方向</div><ul class="plain">${r.improvements.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>`:''}`;
 }
 
-function parseFilesArea(text) {
-  const blocks = (text||'').split(/^#\s*==(.+?)==\s*$/m);
-  const files = []; let pending = '';
-  for (let i = 1; i < blocks.length; i += 2) {
-    const name = blocks[i].trim(); const content = (blocks[i+1]||'').replace(/^\n+/,'').replace(/\n+$/,'');
-    if (name && content) files.push({filename: name, content, language: ''});
-  }
-  if (!files.length) {
-    files.push({filename: 'untitled.txt', content: (text||'').replace(/^#.*\n/g,''), language: ''});
-  }
-  files.forEach(f => {
-    const m = f.filename.toLowerCase().match(/\.(py|js|ts|java|go|rs|rb|php|c|cpp|h|sh)$/);
-    if (m) f.language = {py:'python',js:'javascript',ts:'javascript',java:'java',go:'go',rs:'rust',rb:'ruby',php:'php',c:'c',cpp:'c',h:'c',sh:'shell'}[m[1]] || '';
-  });
+function copyText(t){navigator.clipboard.writeText(t||'').then(()=>toast('已复制 ✅')).catch(()=>toast('复制失败'))}
+function applyFix(i){codeEl.value=(i.fix_code||'');statusEl.textContent='已应用修复代码到输入框';toast('已应用到输入框')}
+
+function parseFilesArea(text){
+  const blocks=(text||'').split(/^#\s*==(.+?)==\s*$/m);
+  const files=[];for(let i=1;i<blocks.length;i+=2){const n=blocks[i].trim(),c=(blocks[i+1]||'').replace(/^\n+/,'').replace(/\n+$/,'');if(n&&c)files.push({filename:n,content:c,language:''})}
+  if(!files.length)files.push({filename:'untitled.txt',content:(text||'').replace(/^#.*\n/g,''),language:''});
+  files.forEach(f=>{const m=f.filename.toLowerCase().match(/\.(py|js|ts|java|go|rs|rb|php|c|cpp|sh)$/);if(m)f.language={py:'python',js:'javascript',ts:'javascript',java:'java',go:'go',rs:'rust',rb:'ruby',php:'php',c:'c',cpp:'c',sh:'shell'}[m[1]]||''});
   return files;
 }
 
-async function run() {
-  const language = document.getElementById('language').value.trim();
-  const context = document.getElementById('context').value.trim();
-  const pick = mode === 'files' ? document.getElementById('files-area') : document.getElementById('code');
-  const content = pick.value.trim();
-  if (!content) { statusEl.textContent = '请先粘贴内容'; return; }
-  btn.disabled = true;
-  fixCard.style.display = 'none';
-  statusEl.textContent = '双引擎评审中，请稍候（通常 3-10 秒）...';
-  reportEl.innerHTML = '<p class="muted">⏳ 正在评审...</p>';
-  const body = { language, context };
-  try {
-    let endpoint; 
-    if (mode === 'files') { endpoint = '/v1/review_files'; body.files = parseFilesArea(content); if (!body.files.length) throw new Error('未解析到任何文件'); }
-    else if (mode === 'diff') { endpoint = '/v1/review_diff'; body.diff = content; }
-    else if (mode === 'fix') { endpoint = '/v1/suggest_fix'; body.code = content; }
-    else { endpoint = '/v1/review'; body.code = content; }
-    const resp = await fetch(endpoint, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-    });
-    const data = await resp.json();
-    if (!resp.ok) { reportEl.innerHTML = '<p style="color:#ef4444">错误：' + esc(data.error || resp.statusText) + '</p>'; statusEl.textContent=''; return; }
-
-    if (mode === 'fix') {
-      const res = data.result || {};
-      fixCard.style.display = 'block';
-      reportEl.innerHTML = '<p class="muted">自动修复说明：</p>' + esc(res.explanation || '');
-      fixReportEl.innerHTML = `
-        <p class="muted">检测到 ${res.found_issues||0} 个规则问题</p>
-        <label>修复后代码：</label>
-        <pre class="code"><code>${hl(res.fixed_code, language)}</code></pre>
-        <button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(res.fixed_code||'')}">📋 复制修复后代码</button>
-        ${(res.changes && res.changes.length) ? `<label>修改点：</label><ul class="plain">${res.changes.map(c=>'<li>'+esc(c)+'</li>').join('')}</ul>` : ''}
-      `;
-      statusEl.textContent = '修复方案已生成';
-      return;
+async function run(){
+  const language=document.getElementById('language').value.trim();
+  const context=document.getElementById('context').value.trim();
+  const pick=mode==='files'?document.getElementById('files-area'):codeEl;
+  const content=pick.value.trim();
+  if(!content){statusEl.textContent='请先粘贴内容';return}
+  btn.disabled=true;fixCard.style.display='none';
+  statusEl.textContent='⏳ 双引擎评审中（3-10 秒）...';
+  reportEl.className='';reportEl.innerHTML='<div class="report-empty">⏳ 评审中...</div>';
+  const body={language,context};
+  try{
+    let endpoint;
+    if(mode==='files'){endpoint='/v1/review_files';body.files=parseFilesArea(content);if(!body.files.length)throw new Error('未解析到文件')}
+    else if(mode==='diff'){endpoint='/v1/review_diff';body.diff=content}
+    else if(mode==='fix'){endpoint='/v1/suggest_fix';body.code=content}
+    else{endpoint='/v1/review';body.code=content}
+    const resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await resp.json();
+    if(!resp.ok){reportEl.innerHTML=`<div class="report-empty" style="color:var(--danger)">❌ ${esc(data.error||resp.statusText)}</div>`;statusEl.textContent='';return}
+    if(mode==='fix'){
+      const res=data.result||{};fixCard.style.display='block';
+      reportEl.innerHTML=`<p style="color:var(--text-2);font-size:.85rem">${esc(res.explanation||'')}</p>`;
+      fixReportEl.innerHTML=`<p style="color:var(--text-3);font-size:.8rem">检测到 ${res.found_issues||0} 个规则问题</p><pre class="code"><code>${hl(res.fixed_code,language)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(res.fixed_code||'')}">📋 复制修复代码</button>${(res.changes&&res.changes.length)?`<ul class="plain" style="margin-top:8px">${res.changes.map(c=>'<li>'+esc(c)+'</li>').join('')}</ul>`:''}`;
+      statusEl.textContent='✅ 修复方案已生成';return;
     }
-
-    const r = data.report || data.overall_report || {};
-    let extra = '';
-    if (data.files_changed) extra = `<p class="muted">变更文件: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</p>`;
-    if (mode === 'files' && data.file_reports) {
-      const perFile = `<div class="muted" style="margin:.5rem 0;">每个文件规则扫描：
-        ${data.file_reports.map(f => `<span class="tag">${esc(f.filename)}: ${(f.report.engine_info||{}).total_rules_run||0} 次</span>`).join(' ')}</div>`;
-      extra += perFile;
-    }
-    reportEl.innerHTML = renderReport(r, data.model) + '<hr style="margin:1rem 0;">' + (extra||'');
-    statusEl.textContent = '✅ 评审完成（' + (mode==='files' ? '多文件' : mode==='diff' ? 'Diff' : '代码') + '）';
-  } catch (e) {
-    reportEl.innerHTML = '<p style="color:#ef4444">请求失败：' + esc(e.message) + '</p>';
-    statusEl.textContent = '';
-  } finally { btn.disabled = false; }
+    const r=data.report||data.overall_report||{};
+    let extra='';
+    if(data.files_changed)extra=`<div class="sub">变更: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</div>`;
+    reportEl.innerHTML=renderReport(r,data.model)+(extra?`<div style="margin-top:12px">${extra}</div>`:'');
+    statusEl.textContent='✅ 评审完成';
+  }catch(e){reportEl.innerHTML=`<div class="report-empty" style="color:var(--danger)">❌ ${esc(e.message)}</div>`;statusEl.textContent=''}
+  finally{btn.disabled=false}
 }
-btn.addEventListener('click', run);
+btn.addEventListener('click',run);
 </script>
 </body>
 </html>
