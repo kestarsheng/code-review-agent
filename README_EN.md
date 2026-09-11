@@ -2,7 +2,7 @@
 
 **Dual-engine AI code quality review service** (Code Review as a Service). Rule engine + LLM semantic analysis + cross-validation, producing structured reports with per-dimension scores and directly applicable fix code. Provides REST API and MCP tools, callable by Claude Code / Codex / Cursor and other Agents.
 
-> 中文 | [English](README.md)
+> [中文](README.md) | English
 
 > Submission for **X-Agent AI MCP Hackathon 2026 · Open Innovation Challenge**.
 >
