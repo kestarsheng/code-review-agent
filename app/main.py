@@ -16,7 +16,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from .config import PROJECT_SLUG, get_settings
-from .reviewer import ReviewError, review_code, review_diff, review_files
+from .reviewer import (
+    ReviewError,
+    explain_issue,
+    review_code,
+    review_diff,
+    review_files,
+    suggest_fix_for_code,
+)
 from .rules_engine import RULES, run_rules
 from .schemas import (
     DiffReviewRequest,
@@ -136,6 +143,32 @@ def list_rules() -> dict:
             for r in RULES
         ],
     }
+
+
+@app.get("/v1/rules/{rule_id}", tags=["review"])
+def get_rule(rule_id: str) -> dict:
+    """Explain a single rule-engine rule in detail."""
+    result = explain_issue(rule_id)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result.get("error"))
+    return result
+
+
+@app.post("/v1/suggest_fix", tags=["review"])
+async def suggest_fix(req: ReviewRequest) -> dict:
+    """Generate a full corrected version of code with known issues."""
+    if len(req.code) > settings.max_code_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"code 过长（限制 {settings.max_code_chars} 字符）",
+        )
+    try:
+        result = suggest_fix_for_code(
+            code=req.code, language=req.language, context=req.context
+        )
+    except ReviewError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True, "model": settings.llm_model, "result": result}
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

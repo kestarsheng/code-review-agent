@@ -160,3 +160,49 @@ def build_files_prompt(
     parts.append("")
     parts.append(JSON_SCHEMA_EXAMPLE)
     return "\n".join(parts)
+
+
+SUGGEST_FIX_SYSTEM_PROMPT = """\
+你是一名资深代码修复专家。你的任务是为存在问题的代码生成修复方案。\
+请以严格的 JSON 格式输出，不要输出任何 JSON 以外的内容。
+"""
+
+SUGGEST_FIX_SCHEMA_EXAMPLE = """\
+修复方案 JSON 结构如下：
+{
+  "fixed_code": "修复后的完整代码，可直接替换原始代码；若无法修复则填 null",
+  "explanation": "2-4 句说明修改了什么、为什么这样修改、解决了什么问题",
+  "changes": ["修改点列表，每条描述一处具体修改"]
+}
+
+规则：
+1. fixed_code 必须完整、可直接运行，不含注释掉的原始代码。
+2. 若问题是缺失上下文导致无法准确修复，explanation 说明需要补充哪些信息，fixed_code 填 null。
+"""
+
+
+def build_suggest_fix_prompt(
+    language: str,
+    context: str,
+    code: str,
+    issues: list[dict],
+) -> str:
+    """Build prompt for generating a fix for known issues in code."""
+    parts = [f"语言：{language or '未知'}"]
+    if context:
+        parts.append(f"任务上下文：{context}")
+    parts.append("存在问题：")
+    for i in issues:
+        parts.append(
+            f"  - [{i.get('rule_id') or i.get('source', 'llm')}] "
+            f"{i.get('severity')}/{i.get('category')} "
+            f"行{i.get('line', '?')}: {i.get('title')}"
+        )
+        if i.get("description"):
+            parts.append(f"    描述：{i['description']}")
+    parts.append("")
+    parts.append("原始代码：")
+    parts.append("```" + language + "\n" + code + "\n```")
+    parts.append("")
+    parts.append(SUGGEST_FIX_SCHEMA_EXAMPLE)
+    return "\n".join(parts)

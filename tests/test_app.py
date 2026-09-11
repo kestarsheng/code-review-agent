@@ -119,6 +119,54 @@ def test_list_rules_endpoint():
     assert any(r["id"] == "PY-S001" for r in body["rules"])
 
 
+def test_get_rule_detail_exists():
+    resp = client.get("/v1/rules/PY-S001")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["rule_id"] == "PY-S001"
+    assert "description" in body
+    assert body["ok"] is True
+
+
+def test_get_rule_detail_not_found():
+    resp = client.get("/v1/rules/XX-X999")
+    assert resp.status_code == 404
+
+
+def test_explain_issue_provides_guidance():
+    from app.reviewer import explain_issue
+
+    result = explain_issue("py-s002")
+    assert result["ok"] is True
+    assert result["rule_id"] == "PY-S002"
+
+
+def test_suggest_fix_endpoint_validates_length(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "max_code_chars", 10)
+    resp = client.post(
+        "/v1/suggest_fix",
+        json={"code": "x" * 100, "language": "python"},
+    )
+    assert resp.status_code == 413
+
+
+def test_suggest_fix_reports_llm_error(monkeypatch):
+    from app import main as main_module
+    from app.reviewer import ReviewError
+
+    def fake_suggest_fix(*args, **kwargs):
+        raise ReviewError("LLM API Key 未配置")
+
+    monkeypatch.setattr(main_module, "suggest_fix_for_code", fake_suggest_fix)
+    resp = client.post(
+        "/v1/suggest_fix",
+        json={"code": "eval(x)", "language": "python"},
+    )
+    assert resp.status_code == 502
+    assert "LLM API Key 未配置" in resp.text
+
+
 # ── Diff parser ─────────────────────────────────────────────────
 
 def test_parse_simple_diff():

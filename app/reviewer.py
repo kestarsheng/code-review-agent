@@ -22,9 +22,11 @@ from .diff_parser import diff_summary, parse_diff
 from .prompts import (
     DIFF_SYSTEM_PROMPT,
     FILES_SYSTEM_PROMPT,
+    SUGGEST_FIX_SYSTEM_PROMPT,
     SYSTEM_PROMPT_WITH_RULES,
     build_diff_prompt,
     build_files_prompt,
+    build_suggest_fix_prompt,
     build_user_prompt,
     build_user_prompt_with_rules,
 )
@@ -403,3 +405,70 @@ def review_files(
         "file_reports": file_reports,
         "overall_report": overall_report,
     }
+
+
+def suggest_fix_for_code(
+    code: str,
+    language: str = "",
+    context: str = "",
+) -> dict[str, Any]:
+    """Generate a complete fix for code with known issues (LLM).
+
+    Runs the rule engine first to surface deterministic findings, then asks
+    the LLM to produce a fully corrected version of the code.
+    """
+    rule_findings = run_rules(code, language)
+    issues = [
+        {
+            "rule_id": f.rule_id,
+            "severity": f.severity,
+            "category": f.category,
+            "line": f.line,
+            "title": f.title,
+            "description": f.description,
+            "suggestion": f.suggestion,
+        }
+        for f in rule_findings
+    ]
+
+    user_prompt = build_suggest_fix_prompt(language, context, code, issues)
+    llm_data = _call_llm(SUGGEST_FIX_SYSTEM_PROMPT, user_prompt)
+
+    result = {
+        "fixed_code": llm_data.get("fixed_code"),
+        "explanation": llm_data.get("explanation", ""),
+        "changes": llm_data.get("changes", []),
+        "found_issues": len(issues),
+    }
+    if not result["fixed_code"] and not issues:
+        result.update(
+            {
+                "fixed_code": code,
+                "explanation": "未检测到问题，代码保持原样。",
+                "changes": [],
+            }
+        )
+    return result
+
+
+def explain_issue(rule_id: str) -> dict[str, Any]:
+    """Explain a rule-engine rule in detail (no LLM needed).
+
+    Returns the rule definition, applicability, and guidance.
+    """
+    from .rules_engine import RULES
+
+    for rule in RULES:
+        if rule.id.lower() == rule_id.strip().lower():
+            return {
+                "rule_id": rule.id,
+                "language": rule.language,
+                "severity": rule.severity,
+                "category": rule.category,
+                "confidence": rule.confidence,
+                "title": rule.title,
+                "description": rule.description,
+                "suggestion": rule.suggestion,
+                "ok": True,
+            }
+    return {"ok": False, "error": f"未找到规则 {rule_id}", "rule_id": rule_id}
