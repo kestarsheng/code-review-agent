@@ -4,84 +4,166 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Code Review Agent - 双引擎 AI 代码评审</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
 <style>
   :root {
-    --bg: #f6f7f9; --card: #ffffff; --border: #e5e7eb;
-    --text: #1f2937; --muted: #6b7280; --primary: #2563eb;
+    --bg: #f4f6fb; --card: #ffffff; --border: #e4e7ef;
+    --text: #1e2440; --muted: #6b7280; --primary: #4f46e5;
+    --primary-soft: #eef2ff; --accent: #0ea5e9;
+    --code-bg: #0f172a; --shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04);
+    --hover: #f8fafc;
+  }
+  [data-theme="dark"] {
+    --bg: #0b1020; --card: #131a2e; --border: #232c45;
+    --text: #e5e9f5; --muted: #8b93a7; --primary: #818cf8;
+    --primary-soft: #1e2340; --accent: #38bdf8;
+    --code-bg: #0a0f1e; --shadow: 0 1px 3px rgba(0,0,0,.4);
+    --hover: #1a2238;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; font-family: -apple-system, "Segoe UI", "PingFang SC",
-      "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text);
+    margin: 0; font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); transition: background .25s, color .25s;
   }
   header {
-    background: linear-gradient(135deg, #1e3a8a, #2563eb);
-    color: #fff; padding: 2rem 2rem 1.5rem; text-align: center;
+    background: linear-gradient(135deg, #312e81, #4f46e5 55%, #0ea5e9);
+    color: #fff; padding: 2.2rem 1rem 1.8rem; text-align: center; position: relative;
   }
-  header h1 { margin: 0 0 .3rem; font-size: 1.6rem; }
-  header p { margin: 0; opacity: .85; font-size: .95rem; }
-  main { max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; }
+  header h1 { margin: 0 0 .35rem; font-size: 1.7rem; letter-spacing: .5px; }
+  header p { margin: 0; opacity: .88; font-size: .95rem; }
+  #theme-btn {
+    position: absolute; right: 1rem; top: 1rem; background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.35); color: #fff; border-radius: 99px;
+    padding: .35rem .9rem; cursor: pointer; font-size: .8rem; backdrop-filter: blur(4px);
+  }
+  main { max-width: 1060px; margin: 1.4rem auto; padding: 0 1rem 3rem; }
   .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 1.2rem; margin-bottom: 1.2rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 1.25rem; margin-bottom: 1.1rem; box-shadow: var(--shadow);
+    transition: background .25s, border-color .25s;
   }
-  label { font-weight: 600; display: block; margin-bottom: .4rem; }
-  .row { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .card h3 { margin: 0 0 .8rem; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+  label { font-weight: 600; display: block; margin: .7rem 0 .4rem; font-size: .88rem; }
+  .row { display: flex; gap: .75rem; flex-wrap: wrap; }
   .row input {
-    flex: 1; min-width: 140px; padding: .55rem .7rem; border: 1px solid var(--border);
-    border-radius: 8px; font-size: .9rem;
+    flex: 1; min-width: 150px; padding: .55rem .7rem; border: 1px solid var(--border);
+    border-radius: 9px; font-size: .88rem; background: var(--card); color: var(--text);
+    outline: none; transition: border-color .2s;
   }
-  textarea {
-    width: 100%; min-height: 220px; padding: .7rem; border: 1px solid var(--border);
-    border-radius: 8px; font-family: "Cascadia Code", Consolas, monospace;
-    font-size: .85rem; resize: vertical;
+  .row input:focus, textarea:focus { border-color: var(--primary); }
+  textarea, pre.code {
+    width: 100%; min-height: 230px; padding: .8rem; border: 1px solid var(--border);
+    border-radius: 10px; font-family: "Cascadia Code", Consolas, "JetBrains Mono", monospace;
+    font-size: .84rem; resize: vertical; background: var(--card); color: var(--text);
+    outline: none; line-height: 1.55;
   }
+  pre.code { background: var(--code-bg)!important; color: #e2e8f0!important; min-height: 60px; white-space: pre-wrap; word-break: break-word; border: 0; }
   button {
-    background: var(--primary); color: #fff; border: 0; border-radius: 8px;
-    padding: .7rem 1.6rem; font-size: .95rem; cursor: pointer; margin-top: .6rem;
+    background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; border: 0; border-radius: 9px;
+    padding: .66rem 1.5rem; font-size: .92rem; cursor: pointer; margin-top: .8rem; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(79,70,229,.25); transition: transform .15s, opacity .2s;
   }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  #report { white-space: pre-wrap; font-family: "Cascadia Code", Consolas, monospace; font-size: .85rem; }
-  .muted { color: var(--muted); font-size: .85rem; }
-  .badge {
-    display: inline-block; padding: .15rem .55rem; border-radius: 99px;
-    font-size: .75rem; font-weight: 600;
+  button:hover { transform: translateY(-1px); }
+  button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  button.secondary {
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    box-shadow: none; margin-left: .5rem;
   }
-  .b-critical { background:#fee2e2; color:#b91c1c; }
-  .b-major { background:#ffedd5; color:#c2410c; }
-  .b-minor { background:#fef9c3; color:#a16207; }
-  .b-info { background:#e0e7ff; color:#3730a3; }
-  .b-rule { background:#d1fae5; color:#065f46; }
-  .b-llm { background:#dbeafe; color:#1e40af; }
-  .b-confirmed { background:#ede9fe; color:#5b21b6; }
-  .issue { border-left: 3px solid #d1d5db; padding: .5rem .8rem; margin: .6rem 0; background: #fafafa; border-radius: 0 6px 6px 0; }
-  .issue h4 { margin: 0 0 .25rem; font-size: .88rem; }
-  .issue p { margin: .2rem 0; font-size: .84rem; }
-  .engine-info { display: flex; gap: 1rem; flex-wrap: wrap; margin: .5rem 0; }
-  .engine-stat { background: #f3f4f6; padding: .3rem .8rem; border-radius: 6px; font-size: .8rem; }
-  .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
-  .tab { padding: .5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: .9rem; }
+  .muted { color: var(--muted); font-size: .82rem; }
+
+  .tabs { display: flex; gap: .45rem; margin-bottom: .6rem; flex-wrap: wrap; }
+  .tab { padding: .45rem .95rem; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: .86rem; transition: all .2s; }
   .tab.active { background: var(--primary); color: #fff; }
-  .tab:not(.active) { background: #e5e7eb; color: var(--muted); }
+  .tab:not(.active) { background: var(--hover); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── Result header ── */
+  .result-head { display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap; margin-bottom: .6rem; }
+  .score-circle {
+    width: 92px; height: 92px; border-radius: 50%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+    background: conic-gradient(var(--score-color) calc(var(--score-val) * 1%), rgba(255,255,255,.12) 0);
+  }
+  .score-circle::before { content: ""; position: absolute; width: 78px; height: 78px; border-radius: 50%; background: var(--card); }
+  .score-circle .val { position: relative; font-size: 1.5rem; font-weight: 800; line-height: 1; z-index: 1; }
+  .score-circle .grade { position: relative; font-size: .78rem; opacity: .9; z-index: 1; }
+  .result-meta { flex: 1; min-width: 200px; }
+  .result-meta h4 { margin: 0 0 .3rem; font-size: 1.05rem; }
+
+  /* ── Dimension bars ── */
+  .dim-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .7rem; margin: .6rem 0; }
+  .dim { background: var(--hover); border-radius: 10px; padding: .6rem .8rem; }
+  .dim .dim-head { display: flex; justify-content: space-between; font-size: .8rem; font-weight: 600; margin-bottom: .35rem; }
+  .dim .bar { height: 7px; border-radius: 99px; background: var(--border); overflow: hidden; }
+  .dim .bar i { display: block; height: 100%; border-radius: 99px; transition: width .8s ease; }
+
+  /* ── Engine stats ── */
+  .engine-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .7rem; margin: .5rem 0 .2rem; }
+  .eng-stat { border: 1px solid var(--border); border-radius: 10px; padding: .65rem .8rem; text-align: center; background: var(--hover); }
+  .eng-stat .num { font-size: 1.35rem; font-weight: 800; }
+  .eng-stat .lbl { font-size: .76rem; color: var(--muted); margin-top: .15rem; }
+  .eng-stat.rule .num { color: #10b981; } .eng-stat.llm .num { color: #3b82f6; }
+  .eng-stat.conf .num { color: #8b5cf6; }
+
+  /* ── Issues ── */
+  .issue {
+    border: 1px solid var(--border); border-left: 4px solid #d1d5db; border-radius: 0 10px 10px 0;
+    padding: .65rem .9rem; margin: .6rem 0; background: var(--hover); cursor: pointer;
+    transition: background .2s;
+  }
+  .issue:hover { background: var(--card); }
+  .issue.open { background: var(--card); }
+  .issue-head { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; font-size: .87rem; font-weight: 600; }
+  .issue-det { display: none; margin-top: .6rem; }
+  .issue.open .issue-det { display: block; }
+  .issue-det p { margin: .3rem 0; font-size: .85rem; }
+  .badge {
+    display: inline-block; padding: .13rem .5rem; border-radius: 99px; font-size: .72rem; font-weight: 700;
+  }
+  .b-critical { background:#fee2e2; color:#b91c1c; } .b-major { background:#ffedd5; color:#c2410c; }
+  .b-minor { background:#fef9c3; color:#a16207; } .b-info { background:#dbeafe; color:#1d4ed8; }
+  .b-rule { background:#d1fae5; color:#065f46; } .b-llm { background:#dbeafe; color:#1e40af; }
+  .b-confirmed { background:#ede9fe; color:#5b21b6; }
+  [data-theme="dark"] .b-critical { background:#3f1d1d; color:#fca5a5; }
+  [data-theme="dark"] .b-major { background:#3f2a1d; color:#fdba74; }
+  [data-theme="dark"] .b-minor { background:#3d361d; color:#fde047; }
+  [data-theme="dark"] .b-info { background:#1e293b; color:#93c5fd; }
+  [data-theme="dark"] .b-rule { background:#143326; color:#6ee7b7; }
+  [data-theme="dark"] .b-llm { background:#1e293b; color:#93c5fd; }
+  [data-theme="dark"] .b-confirmed { background:#2e2447; color:#c4b5fd; }
+
+  .copy-btn {
+    background: var(--primary-soft); color: var(--primary); border: 1px solid var(--border);
+    border-radius: 7px; font-size: .76rem; padding: .28rem .6rem; cursor: pointer; margin-top: .4rem;
+  }
+  .apply-btn { background: #10b981; color: #fff; }
+  .tag { color: var(--muted); font-size: .78rem; }
+  .ok-bar { border-left-color: #22c55e; }
+  .ok-bar.open { background: var(--card); }
+  ul.plain { margin: .4rem 0; padding-left: 1.1rem; } ul.plain li { margin: .25rem 0; font-size: .88rem; }
+  .fix-block { margin-top: .5rem; }
 </style>
 </head>
 <body>
 <header>
+  <button id="theme-btn" onclick="toggleTheme()">🌙 暗色</button>
   <h1>Code Review Agent</h1>
-  <p>双引擎 AI 代码评审 · 规则引擎 + LLM 语义分析 · 交叉验证降低误报</p>
+  <p>双引擎 AI 代码评审 · 规则引擎 + LLM 语义分析 · 交叉验证降低误报 · 分维度评分</p>
 </header>
 <main>
   <div class="card">
     <div class="tabs">
       <div class="tab active" id="tab-code" onclick="switchTab('code')">代码评审</div>
       <div class="tab" id="tab-diff" onclick="switchTab('diff')">Diff 评审</div>
+      <div class="tab" id="tab-files" onclick="switchTab('files')">多文件评审</div>
+      <div class="tab" id="tab-fix" onclick="switchTab('fix')">自动修复</div>
     </div>
-    <div class="row">
+    <div class="row" style="margin-bottom:.4rem;">
       <input id="language" placeholder="语言 (python / java / js / go ...)" value="python">
-      <input id="context" placeholder="任务上下文（可选）">
+      <input id="context" placeholder="任务上下文（可选）" style="flex:2;">
     </div>
-    <label for="code" id="code-label">源代码</label>
-    <textarea id="code" placeholder="粘贴要评审的代码...">def get_user(user_id):
+    <div id="single-block">
+      <label for="code" id="code-label">源代码</label>
+      <textarea id="code" spellcheck="false">def get_user(user_id):
     query = f"SELECT * FROM users WHERE id = {user_id}"
     return db.execute(query).fetchone()
 
@@ -89,34 +171,83 @@ def save_profile(user):
     password = "hardcoded123456"
     db.execute(f"UPDATE users SET bio = '{user['bio']}' WHERE id = {user['id']}")
     db.commit()</textarea>
+    </div>
+    <div id="files-block" style="display:none;">
+      <label>多个文件（用 <code># == 文件名 ==</code> 分隔，每段一个文件）</label>
+
+      <textarea id="files-area" spellcheck="false"># == utils.py ==
+import os
+
+def load_config(path):
+    token = "sk-1234567890abcdef"
+    data = open(path).read()
+    return eval(data)
+
+# == main.py ==
+from utils import load_config
+
+def handler(event, context):
+    cfg = load_config("config.txt")
+    result = eval(event["body"])
+    return {"statusCode": 200, "body": result}</textarea>
+    </div>
     <button id="btn">开始评审</button>
     <p class="muted" id="status"></p>
   </div>
-  <div class="card">
-    <label>评审报告</label>
-    <div id="report">尚未评审。点击「开始评审」调用双引擎评审。</div>
+
+  <div class="card" id="result-card">
+    <h3>📋 评审报告</h3>
+    <div id="report"><p class="muted">尚未评审。点击「开始评审」调用双引擎评审。</p></div>
+  </div>
+  <div class="card" id="fix-card" style="display:none;">
+    <h3>🔧 修复方案</h3>
+    <div id="fix-report"></div>
   </div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
 <script>
 let mode = 'code';
 const btn = document.getElementById('btn');
 const statusEl = document.getElementById('status');
 const reportEl = document.getElementById('report');
+const fixReportEl = document.getElementById('fix-report');
+const fixCard = document.getElementById('fix-card');
 const codeEl = document.getElementById('code');
-const codeLabel = document.getElementById('code-label');
+const filesBlock = document.getElementById('files-block');
+const singleBlock = document.getElementById('single-block');
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ 亮色' : '🌙 暗色';
+  try { localStorage.setItem('cr-theme', next); } catch(e) {}
+}
+(function(){ try {
+  const saved = localStorage.getItem('cr-theme');
+  if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('theme-btn').textContent = '☀️ 亮色'; }
+} catch(e) {} })();
 
 function switchTab(tab) {
   mode = tab;
-  document.getElementById('tab-code').classList.toggle('active', tab === 'code');
-  document.getElementById('tab-diff').classList.toggle('active', tab === 'diff');
+  ['code','diff','files','fix'].forEach(t =>
+    document.getElementById('tab-'+t).classList.toggle('active', t === tab));
+  const isFiles = tab === 'files';
+  filesBlock.style.display = isFiles ? 'block' : 'none';
+  singleBlock.style.display = (tab === 'fix') ? 'block' : (isFiles ? 'none' : 'block');
+  fixCard.style.display = 'none';
+  const label = document.getElementById('code-label');
   if (tab === 'diff') {
-    codeLabel.textContent = 'Unified Diff';
+    label.textContent = 'Unified Diff';
     codeEl.placeholder = '粘贴 git diff 输出...';
-    codeEl.value = '--- a/example.py\n+++ b/example.py\n@@ -1,5 +1,7 @@\n def process(data):\n-    result = eval(data)\n+    import json\n+    result = json.loads(data)\n     return result\n+\n+password = "secret123456"';
+  } else if (tab === 'fix') {
+    label.textContent = '待修复代码';
+    codeEl.placeholder = '粘贴有问题的代码...';
+
   } else {
-    codeLabel.textContent = '源代码';
+    label.textContent = '源代码';
     codeEl.placeholder = '粘贴要评审的代码...';
-    codeEl.value = "def get_user(user_id):\n    query = f\"SELECT * FROM users WHERE id = {user_id}\"\n    return db.execute(query).fetchone()\n\ndef save_profile(user):\n    password = \"hardcoded123456\"\n    db.execute(f\"UPDATE users SET bio = '{user['bio']}' WHERE id = {user['id']}\")\n    db.commit()";
+    codeEl.rows = undefined;
   }
 }
 
@@ -124,79 +255,190 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function gradeColor(g) {
-  if (g === 'A') return '#16a34a';
-  if (g === 'B') return '#2563eb';
-  if (g === 'C') return '#d97706';
-  return '#dc2626';
+  if (g === 'A') return '#22c55e'; if (g === 'B') return '#3b82f6';
+  if (g === 'C') return '#f59e0b'; return '#ef4444';
+}
+function hl(code, lang) {
+  let text = String(code||'');
+  if (window.hljs && text.trim()) {
+    try {
+      const want = (lang||'python').toLowerCase();
+      return hljs.highlight(text, {language: hljs.getLanguage(want) ? want : 'python'}).value;
+    } catch(e) {}
+    try { return hljs.highlightAuto(text).value; } catch(e) {}
+  }
+  const kw = /\b(def|class|import|from|return|if|elif|else|for|while|try|except|with|async|await|const|let|var|function|export|new|throw|public|private|static|int|str|float|bool)\b/g;
+  let html = esc(text);
+  html = html.replace(/(#|<!--)[^\n]*/g, '<span style="color:#64748b">$&</span>');
+  html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g, '<span style="color:#f59e0b">$1</span>');
+  html = html.replace(kw, '<span style="color:#c084fc">$1</span>');
+  html = html.replace(/\b(\d+\.?\d*)\b/g, '<span style="color:#38bdf8">$1</span>');
+  return html;
+}
+function renderDimensionScores(dim) {
+  if (!dim) return '';
+  const labels = {correctness:'正确性', security:'安全性', performance:'性能', maintainability:'可维护性', best_practice:'最佳实践'};
+  const colors = {correctness:'#3b82f6', security:'#ef4444', performance:'#f59e0b', maintainability:'#10b981', best_practice:'#8b5cf6'};
+  return `<div class="dim-list">` + Object.keys(labels).map(k => {
+    const v = (dim[k] ?? 0);
+    const c = v >= 85 ? '#22c55e' : v >= 70 ? '#3b82f6' : v >= 50 ? '#f59e0b' : '#ef4444';
+    return `<div class="dim">
+      <div class="dim-head"><span>${labels[k]}</span><span style="color:${c}">${v}</span></div>
+      <div class="bar"><i style="width:${v}%;background:${c}"></i></div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+function renderEngineInfo(info) {
+  if (!info || !info.engines) return '';
+  return `<div class="engine-grid">
+    <div class="eng-stat rule"><div class="num">${info.rule_count||0}</div><div class="lbl">⚡ 规则引擎命中</div></div>
+    <div class="eng-stat llm"><div class="num">${info.llm_count||0}</div><div class="lbl">🧠 LLM 语义发现</div></div>
+    <div class="eng-stat conf"><div class="num">${info.confirmed_count||0}</div><div class="lbl">✅ 交叉验证确认</div></div>
+    <div class="eng-stat"><div class="num">${info.total_rules_run||0}</div><div class="lbl">🔍 规则执行次数</div></div>
+  </div>`;
+}
+function copyText(text) {
+  navigator.clipboard.writeText(text||'').then(() => toast('已复制 ✅')).catch(() => toast('复制失败'));
+}
+function applyFix(i) {
+  const code = document.getElementById('code');
+  if (code) { code.value = (i.fix_code||''); statusEl.textContent = '已应用修复代码到输入框，可再次评审验证。'; }
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id='toast';
+    el.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:.5rem 1.1rem;border-radius:99px;font-size:.85rem;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.25);';
+    document.body.appendChild(el); }
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.opacity = '0', 1800);
+}
+
+function attrEsc(s) {
+  return esc(s).replace(/"/g, '&quot;');
 }
 function renderIssues(report) {
-  if (!report.issues || !report.issues.length) return '<p class="muted">未发现问题。</p>';
-  return report.issues.map(i => {
+  if (!report.issues || !report.issues.length) return '<p class="muted">✅ 未发现问题。</p>';
+  return report.issues.map((i, idx) => {
     const line = i.line ? ` · 行 ${i.line}` : '';
     const src = i.source ? `<span class="badge b-${i.source}">${i.source}</span>` : '';
-    const ruleId = i.rule_id ? ` <span class="muted">${esc(i.rule_id)}</span>` : '';
-    const conf = i.confidence ? ` <span class="muted">置信度 ${(i.confidence*100|0)}%</span>` : '';
-    return `<div class="issue">
-      <h4><span class="badge b-${i.severity}">${i.severity}</span> ${src} ${esc(i.title)}${line}${ruleId}${conf}</h4>
-      <p><b>类别：</b>${esc(i.category)}</p>
-      <p>${esc(i.description)}</p>
-      <p class="muted"><b>建议：</b>${esc(i.suggestion)}</p>
+    const ruleId = i.rule_id ? `<span class="tag">${esc(i.rule_id)}</span>` : '';
+    const conf = (i.confidence != null) ? ` <span class="tag">置信度 ${(i.confidence*100|0)}%</span>` : '';
+    const fix = i.fix_code ? `<div class="fix-block">
+      <p class="muted" style="margin-bottom:.3rem;">修复代码（可直接应用）：</p>
+      <pre class="code"><code class="language-python">${hl(i.fix_code)}</code></pre>
+      <button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(i.fix_code)}">📋 复制修复</button>
+      <button class="copy-btn apply-btn" onclick="applyFix(report.issues[${idx}])">⚡ 应用到输入框</button>
+    </div>` : '';
+    return `<div class="issue" onclick="this.classList.toggle('open')">
+      <div class="issue-head">
+        <span class="badge b-${i.severity}">${i.severity}</span> ${src}
+        <span>${esc(i.title)}</span>${line} ${ruleId} ${conf}
+      </div>
+      <div class="issue-det">
+        <p><b>类别：</b>${esc(i.category)}</p>
+        <p>${esc(i.description)}</p>
+        <p class="muted"><b>建议：</b>${esc(i.suggestion)}</p>
+        ${fix}
+      </div>
     </div>`;
   }).join('');
 }
-function renderEngineInfo(info) {
-  if (!info || !Object.keys(info).length) return '';
-  return `<div class="engine-info">
-    <span class="engine-stat">规则引擎: ${info.rule_count||0} 条</span>
-    <span class="engine-stat">LLM: ${info.llm_count||0} 条</span>
-    <span class="engine-stat">交叉验证: ${info.confirmed_count||0} 条</span>
-  </div>`;
+
+function renderReport(r, model) {
+  const scoreColor = gradeColor(r.grade);
+  const gradient = `background: conic-gradient(${scoreColor} calc(${r.score} * 1%), var(--border) 0);`;
+  return `
+    <div class="result-head">
+      <div class="score-circle" style="${gradient};--score-val:${r.score};">
+        <span class="val" style="color:${scoreColor}">${r.score}</span>
+        <span class="grade" style="color:var(--muted)">${r.grade} 级</span>
+      </div>
+      <div class="result-meta">
+        <h4>${esc(r.summary)}</h4>
+        <p class="muted">模型：${esc(model||'')} · 共 ${(r.issues||[]).length} 个问题</p>
+      </div>
+    </div>
+    ${renderEngineInfo(r.engine_info)}
+    <h3 style="margin-top:.9rem;">📊 分维度评分</h3>
+    ${renderDimensionScores(r.dimension_scores)}
+    <h3 style="margin-top:1rem;">🚨 问题列表 (${(r.issues||[]).length})</h3>
+    ${renderIssues(r)}
+    ${(r.strengths && r.strengths.length) ? `<h3 style="margin-top:1rem;">👍 代码优点</h3><ul class="plain">${r.strengths.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>` : ''}
+    ${(r.improvements && r.improvements.length) ? `<h3 style="margin-top:.6rem;">🚀 改进方向</h3><ul class="plain">${r.improvements.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>` : ''}
+  `;
+}
+
+function parseFilesArea(text) {
+  const blocks = (text||'').split(/^#\s*==(.+?)==\s*$/m);
+  const files = []; let pending = '';
+  for (let i = 1; i < blocks.length; i += 2) {
+    const name = blocks[i].trim(); const content = (blocks[i+1]||'').replace(/^\n+/,'').replace(/\n+$/,'');
+    if (name && content) files.push({filename: name, content, language: ''});
+  }
+  if (!files.length) {
+    files.push({filename: 'untitled.txt', content: (text||'').replace(/^#.*\n/g,''), language: ''});
+  }
+  files.forEach(f => {
+    const m = f.filename.toLowerCase().match(/\.(py|js|ts|java|go|rs|rb|php|c|cpp|h|sh)$/);
+    if (m) f.language = {py:'python',js:'javascript',ts:'javascript',java:'java',go:'go',rs:'rust',rb:'ruby',php:'php',c:'c',cpp:'c',h:'c',sh:'shell'}[m[1]] || '';
+  });
+  return files;
 }
 
 async function run() {
-  const code = codeEl.value.trim();
   const language = document.getElementById('language').value.trim();
   const context = document.getElementById('context').value.trim();
-  if (!code) { statusEl.textContent = '请先粘贴代码'; return; }
+  const pick = mode === 'files' ? document.getElementById('files-area') : document.getElementById('code');
+  const content = pick.value.trim();
+  if (!content) { statusEl.textContent = '请先粘贴内容'; return; }
   btn.disabled = true;
-  statusEl.textContent = '双引擎评审中，请稍候...';
-  reportEl.textContent = '';
+  fixCard.style.display = 'none';
+  statusEl.textContent = '双引擎评审中，请稍候（通常 3-10 秒）...';
+  reportEl.innerHTML = '<p class="muted">⏳ 正在评审...</p>';
+  const body = { language, context };
   try {
-    const endpoint = mode === 'diff' ? '/v1/review_diff' : '/v1/review';
-    const bodyKey = mode === 'diff' ? 'diff' : 'code';
+    let endpoint; 
+    if (mode === 'files') { endpoint = '/v1/review_files'; body.files = parseFilesArea(content); if (!body.files.length) throw new Error('未解析到任何文件'); }
+    else if (mode === 'diff') { endpoint = '/v1/review_diff'; body.diff = content; }
+    else if (mode === 'fix') { endpoint = '/v1/suggest_fix'; body.code = content; }
+    else { endpoint = '/v1/review'; body.code = content; }
     const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [bodyKey]: code, language, context })
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
     const data = await resp.json();
-    if (!resp.ok) {
-      reportEl.textContent = '错误：' + (data.error || resp.statusText);
-      statusEl.textContent = '';
+    if (!resp.ok) { reportEl.innerHTML = '<p style="color:#ef4444">错误：' + esc(data.error || resp.statusText) + '</p>'; statusEl.textContent=''; return; }
+
+    if (mode === 'fix') {
+      const res = data.result || {};
+      fixCard.style.display = 'block';
+      reportEl.innerHTML = '<p class="muted">自动修复说明：</p>' + esc(res.explanation || '');
+      fixReportEl.innerHTML = `
+        <p class="muted">检测到 ${res.found_issues||0} 个规则问题</p>
+        <label>修复后代码：</label>
+        <pre class="code"><code>${hl(res.fixed_code, language)}</code></pre>
+        <button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(res.fixed_code||'')}">📋 复制修复后代码</button>
+        ${(res.changes && res.changes.length) ? `<label>修改点：</label><ul class="plain">${res.changes.map(c=>'<li>'+esc(c)+'</li>').join('')}</ul>` : ''}
+      `;
+      statusEl.textContent = '修复方案已生成';
       return;
     }
-    const r = data.report;
-    const diffMeta = data.files_changed ? `<p class="muted">变更文件: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</p>` : '';
-    reportEl.innerHTML = `
-      <p><b>评分：<span style="color:${gradeColor(r.grade)}">${r.score} (${r.grade})</span></b>
-      <span class="muted"> · 模型：${esc(data.model)}</span></p>
-      ${diffMeta}
-      ${renderEngineInfo(r.engine_info)}
-      <p>${esc(r.summary)}</p>
-      <hr>
-      <b>问题 (${r.issues.length})</b>
-      ${renderIssues(r)}
-      <hr>
-      <b>优点</b><ul>${(r.strengths||[]).map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
-      <b>改进方向</b><ul>${(r.improvements||[]).map(s => '<li>' + esc(s) + '</li>').join('')}</ul>
-    `;
-    statusEl.textContent = '评审完成';
+
+    const r = data.report || data.overall_report || {};
+    let extra = '';
+    if (data.files_changed) extra = `<p class="muted">变更文件: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</p>`;
+    if (mode === 'files' && data.file_reports) {
+      const perFile = `<div class="muted" style="margin:.5rem 0;">每个文件规则扫描：
+        ${data.file_reports.map(f => `<span class="tag">${esc(f.filename)}: ${(f.report.engine_info||{}).total_rules_run||0} 次</span>`).join(' ')}</div>`;
+      extra += perFile;
+    }
+    reportEl.innerHTML = renderReport(r, data.model) + '<hr style="margin:1rem 0;">' + (extra||'');
+    statusEl.textContent = '✅ 评审完成（' + (mode==='files' ? '多文件' : mode==='diff' ? 'Diff' : '代码') + '）';
   } catch (e) {
-    reportEl.textContent = '请求失败：' + e.message;
+    reportEl.innerHTML = '<p style="color:#ef4444">请求失败：' + esc(e.message) + '</p>';
     statusEl.textContent = '';
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { btn.disabled = false; }
 }
 btn.addEventListener('click', run);
 </script>
