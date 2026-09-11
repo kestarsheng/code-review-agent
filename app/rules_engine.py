@@ -189,6 +189,37 @@ RULES: list[Rule] = [
        "使用 exec.Command 并传入参数列表：\n"
        "cmd := exec.Command('ls', arg)"),
 
+    # ── Rust: Security & Reliability ──────────────────────────────
+    _r("RS-S001", "rust", "critical", "security",
+       r"\bunsafe\s*\{",
+       0.90,
+       "使用 unsafe 块",
+       "unsafe 块绕过了 Rust 的内存安全保证，可能导致未定义行为、内存泄漏或段错误。",
+       "审查 unsafe 块的必要性，尽量用安全 API 替代。若必须使用，添加 SAFETY 注释说明不变量。"),
+
+    _r("RS-S002", "rust", "major", "security",
+       r"(?:let\s+)?(?:const\s+)?(?:static\s+)?\w*\s*(?::\s*\w+\s*)?=\s*['\"](?:password|passwd|secret|api_key|token|sk-)[^'\"]*['\"]",
+       0.80,
+       "硬编码密钥或密码",
+       "将密钥硬编码在源码中，泄露风险极高。",
+       "使用环境变量或配置文件：\n"
+       "std::env::var(\"API_KEY\").expect(\"API_KEY not set\")"),
+
+    _r("RS-P001", "rust", "major", "performance",
+       r"\.unwrap\s*\(\s*\)",
+       0.75,
+       "使用 .unwrap() 可能导致 panic",
+       ".unwrap() 在 None/Err 时会 panic，生产代码中应避免。",
+       "使用 match 或 if let 处理错误：\n"
+       "match result { Ok(v) => v, Err(e) => return Err(e.into()) }"),
+
+    _r("RS-S003", "rust", "major", "security",
+       r"Command::new\s*\([^)]*\)\s*\.arg\s*\(\s*(?:format!|&)?",
+       0.70,
+       "Command::new 拼接用户输入存在命令注入风险",
+       "若 arg 内容来自用户输入且未做校验，可能被注入恶意参数。",
+       "对用户输入做严格校验，或使用 .args() 传入固定参数列表。"),
+
     # ── Cross-language: AI Hallucination Patterns ─────────────────
     _r("AI-H001", "*", "major", "ai_pattern",
        r"(?:import|from|require)\s+['\"](?:react|vue|angular|svelte|next|nuxt)/"
@@ -325,6 +356,19 @@ def _fix_bare_except(match_text: str, full_line: str) -> str:
 def _fix_swallowed_catch(match_text: str, full_line: str) -> str:
     indent = full_line[: len(full_line) - len(full_line.lstrip())]
     return f"{indent}catch (e) {{ logger.error(e); throw e; }}"
+
+
+@_fix_gen("RS-S002")
+def _fix_rust_hardcoded_secret(match_text: str, full_line: str) -> str:
+    indent = full_line[: len(full_line) - len(full_line.lstrip())]
+    var_match = re.match(r"\s*(?:let\s+)?(?:const\s+)?(?:static\s+)?(\w+)", full_line)
+    var_name = var_match.group(1).upper() if var_match else "SECRET"
+    return f"{indent}std::env::var(\"{var_name}\").expect(\"{var_name} not set\")"
+
+
+@_fix_gen("RS-P001")
+def _fix_rust_unwrap(match_text: str, full_line: str) -> str:
+    return full_line.replace(".unwrap()", ".unwrap_or_default()")
 
 def run_rules(code: str, language: str = "") -> list[Finding]:
     """Run all applicable rules against the code and return findings."""

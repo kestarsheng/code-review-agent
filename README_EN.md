@@ -17,8 +17,8 @@
                 ▼
 ┌──────────────────────────┐   ┌─────────────────────────────┐
 │  ① Rule Engine (deterministic) │   │  ② LLM Semantic Analysis (deep) │
-│  · 22 cross-language rules     │   │  · Receives rule pre-scan results │
-│  · Python/JS/Java/Go/C*        │───▶  · Confirms/denies rule hits (removes false positives) │
+│  · 26 cross-language rules     │   │  · Receives rule pre-scan results │
+│  · Python/JS/Java/Go/Rust      │───▶  · Confirms/denies rule hits (removes false positives) │
 │  · Security/Perf/AI hallucination/style │   │  · Finds semantic issues (logic/architecture) │
 │  · Zero-cost, ms-level, offline │   │  · Generates per-dimension scores & fix_code │
 └───────────────┬──────────┘   └──────────────┬──────────────┘
@@ -240,7 +240,7 @@ After deployment, access `https://<your-host>/mcp`, configure in MCP client:
 
 ## Rule Engine
 
-Built-in **22 cross-language rules** covering Python / JavaScript / Java / Go / C* / cross-language general patterns:
+Built-in **26 cross-language rules** covering Python / JavaScript / Java / Go / Rust / cross-language general patterns:
 
 | Category | Examples |
 | --- | --- |
@@ -281,7 +281,7 @@ curl https://<your-host>/.well-known/xagent-verification.json
 python -m pytest tests/ -v
 ```
 
-53 unit tests covering rule engine, diff parsing, 5-dimension scoring, fix code generation, multi-file review, and full dual-engine flow.
+58 unit tests covering rule engine, diff parsing, 5-dimension scoring, fix code generation, multi-file review, and full dual-engine flow.
 
 ## License
 

@@ -624,3 +624,42 @@ def test_fix_code_llm_override_on_confirm():
     merged = merge_findings(rule_findings, llm_issues, "eval('1+1')")
     confirmed = next(m for m in merged if m["source"] == "confirmed")
     assert confirmed["fix_code"] == "import ast\nresult = ast.literal_eval(user_input)"
+
+
+# ── Rust rules ──────────────────────────────────────────────────
+
+def test_rules_detect_rust_unsafe():
+    code = "unsafe { *ptr }"
+    findings = run_rules(code, "rust")
+    ids = [f.rule_id for f in findings]
+    assert "RS-S001" in ids
+
+
+def test_rules_detect_rust_hardcoded_secret():
+    code = 'let api_key = "sk-1234567890abcdef";'
+    findings = run_rules(code, "rust")
+    ids = [f.rule_id for f in findings]
+    assert "RS-S002" in ids
+
+
+def test_rules_detect_rust_unwrap():
+    code = "let val = result.unwrap();"
+    findings = run_rules(code, "rust")
+    ids = [f.rule_id for f in findings]
+    assert "RS-P001" in ids
+
+
+def test_fix_code_rust_hardcoded_secret():
+    code = 'let api_key = "sk-1234567890abcdef";'
+    findings = run_rules(code, "rust")
+    f = next(x for x in findings if x.rule_id == "RS-S002")
+    assert f.fix_code is not None
+    assert "std::env" in f.fix_code
+
+
+def test_fix_code_rust_unwrap():
+    code = "let val = result.unwrap();"
+    findings = run_rules(code, "rust")
+    f = next(x for x in findings if x.rule_id == "RS-P001")
+    assert f.fix_code is not None
+    assert "unwrap_or_default" in f.fix_code

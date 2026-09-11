@@ -207,7 +207,7 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
       <button class="btn-ghost" onclick="copyCli()" data-i18n="hero.cliBtn">📋 Copy CLI Command</button>
     </div>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="num">22</div><div class="lbl" data-i18n="hero.statRules">Built-in Rules</div></div>
+      <div class="hero-stat"><div class="num">26</div><div class="lbl" data-i18n="hero.statRules">Built-in Rules</div></div>
       <div class="hero-stat"><div class="num">5</div><div class="lbl" data-i18n="hero.statDims">Dimension Scores</div></div>
       <div class="hero-stat"><div class="num">7</div><div class="lbl" data-i18n="hero.statMcp">MCP Tools</div></div>
       <div class="hero-stat"><div class="num">4</div><div class="lbl" data-i18n="hero.statLangs">Languages</div></div>
@@ -332,7 +332,7 @@ def handler(event, context):
       <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_diff</div><div class="desc" data-i18n="api.r2">Review Unified Diff, return change metadata + review report</div></div>
       <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_files</div><div class="desc" data-i18n="api.r3">Multi-file batch review, per-file scan + cross-file analysis</div></div>
       <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/suggest_fix</div><div class="desc" data-i18n="api.r4">Generate complete fixed version (fixed_code + change notes)</div></div>
-      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules</div><div class="desc" data-i18n="api.r5">List all 22 rule engine rules</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules</div><div class="desc" data-i18n="api.r5">List all 26 rule engine rules</div></div>
       <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules/{rule_id}</div><div class="desc" data-i18n="api.r6">View single rule details and fix guidance</div></div>
       <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/mcp</div><div class="desc" data-i18n="api.r7">Remote MCP streamable HTTP endpoint (7 tools)</div></div>
       <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/health</div><div class="desc" data-i18n="api.r8">Health check, returns deployment commit</div></div>
@@ -387,7 +387,7 @@ const I18N={
     "api.title":"API Overview","api.desc":"REST API and MCP tools coexist on the same server, ready to use after deployment.",
     "api.r1":"Review source code, return 5-dimension scores + issues + fix code","api.r2":"Review Unified Diff, return change metadata + review report",
     "api.r3":"Multi-file batch review, per-file scan + cross-file analysis","api.r4":"Generate complete fixed version (fixed_code + change notes)",
-    "api.r5":"List all 22 rule engine rules","api.r6":"View single rule details and fix guidance",
+    "api.r5":"List all 26 rule engine rules","api.r6":"View single rule details and fix guidance",
     "api.r7":"Remote MCP streamable HTTP endpoint (7 tools)","api.r8":"Health check, returns deployment commit",
     "footer.features":"Features","footer.demo":"Try",
     "dim.correctness":"Correctness","dim.security":"Security","dim.performance":"Performance","dim.maintainability":"Maintainability","dim.best_practice":"Best Practice",
@@ -408,7 +408,7 @@ const I18N={
     "hero.tryBtn":"🚀 在线试用","hero.cliBtn":"📋 复制 CLI 命令",
     "hero.statRules":"内置规则","hero.statDims":"维度评分","hero.statMcp":"MCP 工具","hero.statLangs":"语言覆盖",
     "features.title":"为什么选择双引擎","features.desc":"单一规则引擎只能发现已知模式，单一 LLM 容易漏报。双引擎交叉验证兼顾确定性与深度。",
-    "features.f1t":"规则引擎 — 确定性扫描","features.f1d":"22 条跨语言规则覆盖安全漏洞、性能反模式、AI 幻觉模式。毫秒级返回，零 API 成本，离线可跑。",
+    "features.f1t":"规则引擎 — 确定性扫描","features.f1d":"26 条跨语言规则覆盖安全漏洞、性能反模式、AI 幻觉模式。毫秒级返回，零 API 成本，离线可跑。",
     "features.f2t":"LLM 语义分析 — 深度理解","features.f2d":"接收规则预检结果后做语义级评审：逻辑错误、架构缺陷、业务边界。确认或否定规则命中，消除误报。",
     "features.f3t":"交叉验证 — 三级溯源","features.f3d":"每个 issue 标注来源：rule（仅规则）、llm（仅 LLM）、confirmed（双引擎一致）。置信度自动提升。",
     "features.f4t":"五维度评分 — 量化质量","features.f4d":"正确性、安全性、性能、可维护性、最佳实践各 0–100 分。综合分按安全 30% + 正确性 25% 加权。",
@@ -423,7 +423,7 @@ const I18N={
     "api.title":"API 一览","api.desc":"REST API 与 MCP 工具共存于同一服务器，部署后即可使用。",
     "api.r1":"评审源代码，返回五维度评分 + 问题列表 + 修复代码","api.r2":"评审 Unified Diff，返回变更元数据 + 评审报告",
     "api.r3":"多文件批量评审，per-file 扫描 + 跨文件架构分析","api.r4":"为问题代码生成完整修复版本（fixed_code + 变更说明）",
-    "api.r5":"列出全部 22 条规则引擎规则","api.r6":"查看单条规则详情与修复指引",
+    "api.r5":"列出全部 26 条规则引擎规则","api.r6":"查看单条规则详情与修复指引",
     "api.r7":"远程 MCP streamable HTTP 端点（7 个工具）","api.r8":"健康检查，返回部署 commit",
     "footer.features":"功能","footer.demo":"试用",
     "dim.correctness":"正确性","dim.security":"安全性","dim.performance":"性能","dim.maintainability":"可维护性","dim.best_practice":"最佳实践",
