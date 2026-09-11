@@ -54,9 +54,37 @@ python cli.py --staged           # 评审已暂存改动 (git diff --cached)
 python cli.py --commit HEAD~1    # 评审最近一次提交
 python cli.py src/utils.py       # 评审单个文件
 python cli.py --remote           # 用远程 Vercel 部署（无需启动本地服务）
+python cli.py --format json      # 输出 JSON（机器可读，用于管道/CI）
+python cli.py --sarif out.sarif  # 导出 SARIF（GitHub Code Scanning 格式）
 ```
 
+退出码：`0` 无严重问题 | `2` 存在 critical/major（可做 CI 门禁）| `1` 运行错误
+
 自动读取 git diff → 调 API → 输出带严重度图标、维度评分、修复代码的结构化报告。
+
+## CI/CD 集成
+
+### GitHub Actions（PR 自动评审）
+
+项目自带 `.github/workflows/code-review.yml`，PR 到 main 时自动触发：
+
+1. 获取 PR diff → 调用 Code Review Agent API
+2. 有 critical issue 时 Action 失败（阻断 merge）
+3. 导出 SARIF 上传到 GitHub Code Scanning（issue 直接标注在 PR diff 行上）
+
+### pre-commit hook
+
+```bash
+# .git/hooks/pre-commit
+python cli.py --staged --remote || exit 1   # 有 critical/major 则阻止提交
+```
+
+### SARIF + GitHub Code Scanning
+
+```bash
+python cli.py --sarif results.sarif --remote
+# 然后在 GitHub Action 中用 github/codeql-action/upload-sarif@v3 上传
+```
 
 ## API 一览
 

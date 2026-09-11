@@ -9,6 +9,13 @@
   python cli.py --commit HEAD~3      评审最近 3 次提交的改动
   python cli.py src/utils.py         评审单个文件
   python cli.py --remote             用远程 Vercel 部署而非本地
+  python cli.py --format json        输出 JSON（机器可读，用于管道/CI）
+  python cli.py --sarif out.sarif    导出 SARIF（GitHub Code Scanning 格式）
+
+退出码：
+  0  无问题或仅有 info/minor
+  2  存在 critical 或 major 级别问题（可用作 CI 门禁）
+  1  运行错误（git 失败、API 连接失败等）
 """
 import argparse
 import json
@@ -136,12 +143,51 @@ def print_report(data: dict, is_diff: bool):
         print()
 
 
+def to_sarif(data: dict) -> dict:
+    report = data.get("report", {})
+    issues = report.get("issues", [])
+    sev_map = {"critical": "error", "major": "error", "minor": "warning", "info": "note"}
+    results = []
+    for i in issues:
+        results.append({
+            "ruleId": i.get("rule_id", "llm"),
+            "level": sev_map.get(i.get("severity", "info"), "note"),
+            "message": {"text": i.get("title", "") + " — " + i.get("description", "")},
+            "locations": [{
+                "physicalLocation": {
+                    "artifactLocation": {"uri": i.get("file", "reviewed")},
+                    "region": {"startLine": i.get("line", 1)},
+                }
+            }],
+        })
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {"driver": {"name": "Code Review Agent", "version": "1.0"}},
+            "results": results,
+        }],
+    }
+
+
+def get_exit_code(data: dict) -> int:
+    if not data.get("ok"):
+        return 1
+    issues = data.get("report", {}).get("issues", [])
+    for i in issues:
+        if i.get("severity") in ("critical", "major"):
+            return 2
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="一键代码评审")
     parser.add_argument("--staged", action="store_true", help="评审已暂存改动")
     parser.add_argument("--commit", metavar="REF", help="评审指定提交的改动 (如 HEAD~1)")
     parser.add_argument("--remote", action="store_true", help="用远程 Vercel 部署")
     parser.add_argument("--url", metavar="URL", help="自定义 API 地址")
+    parser.add_argument("--format", choices=["table", "json"], default="table", help="输出格式")
+    parser.add_argument("--sarif", metavar="FILE", help="导出 SARIF 格式到文件")
     parser.add_argument("file", nargs="?", help="评审单个文件")
     args = parser.parse_args()
 
@@ -153,18 +199,34 @@ def main():
             sys.exit(1)
         code = open(args.file, "r", encoding="utf-8").read()
         lang = detect_lang(args.file)
-        print(f"评审文件: {args.file} ({lang or '未知'})")
+        if args.format == "table":
+            print(f"评审文件: {args.file} ({lang or '未知'})")
         data = call_api(base, "/v1/review", {"code": code, "language": lang})
-        print_report(data, is_diff=False)
+        is_diff = False
     else:
         diff = get_diff(args.staged, args.commit)
         if not diff.strip():
             print("没有检测到改动。")
             return
-        line_count = diff.count("\n")
-        print(f"评审 diff: {line_count} 行改动")
+        if args.format == "table":
+            line_count = diff.count("\n")
+            print(f"评审 diff: {line_count} 行改动")
         data = call_api(base, "/v1/review_diff", {"diff": diff})
-        print_report(data, is_diff=True)
+        is_diff = True
+
+    if args.sarif:
+        sarif = to_sarif(data)
+        with open(args.sarif, "w", encoding="utf-8") as f:
+            json.dump(sarif, f, ensure_ascii=False, indent=2)
+        if args.format == "table":
+            print(f"SARIF 已导出到 {args.sarif}")
+
+    if args.format == "json":
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+    else:
+        print_report(data, is_diff=is_diff)
+
+    sys.exit(get_exit_code(data))
 
 
 if __name__ == "__main__":
