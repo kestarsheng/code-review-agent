@@ -167,6 +167,138 @@ def test_suggest_fix_reports_llm_error(monkeypatch):
     assert "LLM API Key 未配置" in resp.text
 
 
+# ── Integrated review flows (mock LLM) ────────────────────────
+
+def _mock_llm_data(monkeypatch, llm_payload: dict, issues=None):
+    """Patch reviewer._call_llm to return a canned payload."""
+    from app import reviewer as reviewer_module
+
+    def fake_call(system_prompt: str, user_prompt: str) -> dict:
+        data = dict(llm_payload)
+        if issues is not None:
+            data.setdefault("issues", issues)
+        return data
+
+    monkeypatch.setattr(reviewer_module, "_call_llm", fake_call)
+
+
+def test_review_code_full_flow(monkeypatch):
+    from app.reviewer import review_code
+
+    _mock_llm_data(
+        monkeypatch,
+        {
+            "summary": "存在安全风险。",
+            "dimension_scores": {"correctness": 88, "security": 40,
+                                 "performance": 90, "maintainability": 80,
+                                 "best_practice": 75},
+            "strengths": ["结构清晰"],
+            "improvements": ["避免使用 eval"],
+        },
+        issues=[
+            {"severity": "critical", "category": "security", "line": 1,
+             "title": "eval 风险", "description": "RCE",
+             "suggestion": "用 ast.literal_eval"}
+        ],
+    )
+    report = review_code("result = eval(x)", "python", "测试")
+    assert report["grade"] in ("A", "B", "C", "D")
+    assert "security" in report["dimension_scores"]
+    assert report["dimension_scores"]["security"] < report["dimension_scores"]["correctness"]
+    assert any(i["source"] == "confirmed" for i in report["issues"])
+    assert "security" in report["issues"][0]["category"]
+
+
+def test_review_diff_full_flow(monkeypatch):
+    from app.reviewer import review_diff
+
+    _mock_llm_data(
+        monkeypatch,
+        {"summary": "diff 存在安全问题", "dimension_scores": None,
+         "strengths": [], "improvements": []},
+        issues=[
+            {"severity": "critical", "category": "security", "line": 1,
+             "title": "新增 eval", "description": "RCE", "suggestion": "不要用"}
+        ],
+    )
+    diff = """--- a/a.py
++++ b/a.py
+@@ -1,3 +1,4 @@
+ def f():
+-    return 1
++    return eval(data)
++    pass
+"""
+    result = review_diff(diff, "python")
+    assert result["diff_meta"]["files_changed"] == ["a.py"]
+    assert result["score"] < 90
+    assert any(i["source"] in ("confirmed", "rule") for i in result["issues"])
+
+
+def test_review_files_full_flow(monkeypatch):
+    from app.reviewer import review_files
+
+    _mock_llm_data(
+        monkeypatch,
+        {"summary": "多文件整体评审", "dimension_scores": None,
+         "strengths": [], "improvements": []},
+        issues=[
+            {"severity": "major", "category": "security", "line": 1,
+             "title": "[utils.py] 硬编码密钥", "description": "泄露风险",
+             "suggestion": "用环境变量"}
+        ],
+    )
+    files = [
+        {"filename": "utils.py", "content": 'token = "sk-1234567890"', "language": "python"},
+        {"filename": "main.py", "content": "import utils\nutils.main()", "language": "python"},
+    ]
+    result = review_files(files, "项目")
+    assert "overall_report" in result
+    assert len(result["file_reports"]) == 2
+    assert any(i["source"] in ("rule", "confirmed") for i in result["overall_report"]["issues"])
+
+
+def test_review_empty_diff_no_llm_call(monkeypatch):
+    from app.reviewer import review_diff
+
+    _mock_llm_data(
+        monkeypatch,
+        {"summary": "should not be called", "issues": []},
+    )
+    result = review_diff("--- a/x\n+++ b/x\n@@ -1 +0,0 @@\n-print(1)", "python")
+    assert result["score"] == 100
+    assert result["grade"] == "A"
+
+
+def test_suggest_fix_full_flow(monkeypatch):
+    from app.reviewer import suggest_fix_for_code
+
+    _mock_llm_data(
+        monkeypatch,
+        {
+            "fixed_code": "import os\napi_key = os.environ['API_KEY']",
+            "explanation": "改用环境变量存储密钥。",
+            "changes": ["删除硬编码", "引入 os.environ"],
+        },
+    )
+    result = suggest_fix_for_code('api_key = "sk-1234567890"', "python")
+    assert result["found_issues"] >= 1
+    assert "os.environ" in result["fixed_code"]
+    assert result["changes"]
+
+
+def test_suggest_fix_clean_code(monkeypatch):
+    from app.reviewer import suggest_fix_for_code
+
+    _mock_llm_data(
+        monkeypatch,
+        {"fixed_code": None, "explanation": "empty", "changes": []},
+    )
+    result = suggest_fix_for_code('x = 1\nprint("hello")', "python")
+    assert result["found_issues"] == 0
+    assert result["fixed_code"] == 'x = 1\nprint("hello")'
+
+
 # ── Diff parser ─────────────────────────────────────────────────
 
 def test_parse_simple_diff():
