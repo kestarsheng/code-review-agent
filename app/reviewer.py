@@ -21,8 +21,10 @@ from .config import get_settings
 from .diff_parser import diff_summary, parse_diff
 from .prompts import (
     DIFF_SYSTEM_PROMPT,
+    FILES_SYSTEM_PROMPT,
     SYSTEM_PROMPT_WITH_RULES,
     build_diff_prompt,
+    build_files_prompt,
     build_user_prompt,
     build_user_prompt_with_rules,
 )
@@ -297,3 +299,107 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
         },
     }
     return report
+
+
+def _build_report(
+    llm_data: dict[str, Any],
+    merged_issues: list[dict],
+    total_rules_run: int,
+) -> dict[str, Any]:
+    """Build a standard review report from LLM data and merged issues."""
+    rule_count = sum(1 for i in merged_issues if i.get("source") == "rule")
+    llm_count = sum(1 for i in merged_issues if i.get("source") == "llm")
+    confirmed_count = sum(1 for i in merged_issues if i.get("source") == "confirmed")
+
+    llm_dim_scores = llm_data.get("dimension_scores")
+    dimension_scores = _compute_dimension_scores(llm_dim_scores, merged_issues)
+    overall_score = _compute_overall_score(dimension_scores)
+    grade = (
+        "A" if overall_score >= 90
+        else "B" if overall_score >= 75
+        else "C" if overall_score >= 60
+        else "D"
+    )
+
+    return {
+        "summary": llm_data.get("summary", ""),
+        "score": overall_score,
+        "grade": grade,
+        "dimension_scores": dimension_scores,
+        "issues": merged_issues,
+        "strengths": llm_data.get("strengths", []),
+        "improvements": llm_data.get("improvements", []),
+        "engine_info": {
+            "rule_count": rule_count,
+            "llm_count": llm_count,
+            "confirmed_count": confirmed_count,
+            "total_rules_run": total_rules_run,
+            "engines": ["rule", "llm"],
+        },
+    }
+
+
+def review_files(
+    files: list[dict[str, str]],
+    context: str = "",
+) -> dict[str, Any]:
+    """Review multiple files: per-file rule scan + holistic LLM review.
+
+    Args:
+        files: list of {filename, content, language} dicts.
+        context: optional project/task context.
+
+    Returns:
+        dict with file_reports (per-file) and overall_report (holistic).
+    """
+    all_rule_findings: list = []
+    rule_summary_parts: list[str] = []
+    file_reports: list[dict] = []
+
+    for f in files:
+        filename = f["filename"]
+        content = f["content"]
+        lang = f.get("language", "")
+
+        file_findings = run_rules(content, lang)
+        all_rule_findings.extend(file_findings)
+
+        if file_findings:
+            for finding in file_findings:
+                rule_summary_parts.append(
+                    f"  [{filename}] {finding.rule_id} {finding.severity}/"
+                    f"{finding.category} 行{finding.line}: {finding.title}"
+                )
+
+        file_merged = merge_findings(file_findings, [], content)
+        file_report = _build_report(
+            {"summary": f"规则引擎扫描 {filename}，发现 {len(file_findings)} 个问题。",
+             "strengths": [], "improvements": []},
+            file_merged,
+            len(file_findings),
+        )
+        file_reports.append({
+            "filename": filename,
+            "language": lang,
+            "report": file_report,
+        })
+
+    rule_summary = "\n".join(rule_summary_parts) if rule_summary_parts else ""
+
+    files_for_prompt = [
+        {"filename": f["filename"], "language": f.get("language", ""),
+         "content": f["content"]}
+        for f in files
+    ]
+    user_prompt = build_files_prompt(context, files_for_prompt, rule_summary)
+    llm_data = _call_llm(FILES_SYSTEM_PROMPT, user_prompt)
+    llm_issues = llm_data.get("issues", [])
+
+    all_code = "\n\n".join(f["content"] for f in files)
+    overall_merged = merge_findings(all_rule_findings, llm_issues, all_code)
+    overall_report = _build_report(llm_data, overall_merged, len(all_rule_findings))
+
+    return {
+        "file_reports": file_reports,
+        "overall_report": overall_report,
+    }

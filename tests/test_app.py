@@ -181,6 +181,47 @@ def test_review_diff_requires_body():
     assert resp.status_code == 422
 
 
+def test_review_files_requires_body():
+    resp = client.post("/v1/review_files", json={})
+    assert resp.status_code == 422
+
+
+def test_review_files_rejects_empty_list():
+    resp = client.post("/v1/review_files", json={"files": []})
+    assert resp.status_code == 422
+
+
+def test_review_files_validates_total_length(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "max_code_chars", 50)
+    resp = client.post(
+        "/v1/review_files",
+        json={"files": [
+            {"filename": "a.py", "content": "x" * 100, "language": "python"},
+            {"filename": "b.py", "content": "y" * 100, "language": "python"},
+        ]},
+    )
+    assert resp.status_code == 413
+
+
+def test_review_files_reports_llm_error(monkeypatch):
+    from app import main as main_module
+    from app.reviewer import ReviewError
+
+    def fake_review_files(*args, **kwargs):
+        raise ReviewError("LLM API Key 未配置")
+
+    monkeypatch.setattr(main_module, "review_files", fake_review_files)
+    resp = client.post(
+        "/v1/review_files",
+        json={"files": [
+            {"filename": "a.py", "content": "print(1)", "language": "python"},
+        ]},
+    )
+    assert resp.status_code == 502
+    assert "LLM API Key 未配置" in resp.text
+
+
 # ── JSON extraction ─────────────────────────────────────────────
 
 def test_extract_json_fenced():

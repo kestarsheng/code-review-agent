@@ -116,3 +116,47 @@ def build_diff_prompt(language: str, context: str, diff: str, diff_meta: str) ->
     parts.append("```diff\n" + diff + "\n```")
     parts.append(JSON_SCHEMA_EXAMPLE)
     return "\n".join(parts)
+
+
+FILES_SYSTEM_PROMPT = """\
+你是一名资深软件架构师与代码评审专家，正在评审一个项目的多个文件。\
+你的任务是从全局视角评审代码质量：不仅关注单个文件内部的问题，\
+还要关注跨文件的架构问题（如循环依赖、接口不一致、重复逻辑等）。
+
+请以严格的 JSON 格式输出评审报告，不要输出任何 JSON 以外的内容。\
+报告中的 issues 应涵盖所有文件的问题，line 字段使用问题所在文件内的行号，\
+在 title 中标注文件名前缀，如 "[utils.py] 第3行存在..."。
+"""
+
+
+def build_files_prompt(
+    context: str,
+    files: list[dict],
+    rule_summary: str,
+) -> str:
+    """Build prompt for multi-file review.
+
+    Args:
+        context: optional project/task context.
+        files: list of {filename, language, content} dicts.
+        rule_summary: pre-check summary from rule engine.
+    """
+    parts = []
+    if context:
+        parts.append(f"项目上下文：{context}")
+    parts.append(f"共 {len(files)} 个文件待评审：\n")
+
+    for f in files:
+        parts.append(f"--- 文件: {f['filename']} (语言: {f.get('language', '未知')}) ---")
+        parts.append(f"```{f.get('language', '')}\n{f['content']}\n```")
+        parts.append("")
+
+    if rule_summary:
+        parts.append("规则引擎预检结果：")
+        parts.append(rule_summary)
+    else:
+        parts.append("规则引擎预检结果：未发现已知模式问题。")
+
+    parts.append("")
+    parts.append(JSON_SCHEMA_EXAMPLE)
+    return "\n".join(parts)

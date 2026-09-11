@@ -88,6 +88,31 @@ class DiffReviewResponse(BaseModel):
     report: ReviewReport
 
 
+class FileItem(BaseModel):
+    filename: str = Field(..., description="文件名，用于标识和展示")
+    content: str = Field(..., min_length=1, description="文件内容")
+    language: str = Field(default="", description="编程语言提示")
+
+
+class FilesReviewRequest(BaseModel):
+    files: list[FileItem] = Field(..., min_length=1, max_length=20, description="待评审文件列表")
+    context: str = Field(default="", max_length=2000, description="可选的项目/任务上下文")
+
+
+class FileReviewReport(BaseModel):
+    filename: str
+    language: str
+    report: ReviewReport
+
+
+class FilesReviewResponse(BaseModel):
+    ok: bool = True
+    model: str
+    total_files: int
+    file_reports: list[FileReviewReport]
+    overall_report: ReviewReport
+
+
 class HealthResponse(BaseModel):
     status: str
     commit: str

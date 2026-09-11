@@ -16,11 +16,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from .config import PROJECT_SLUG, get_settings
-from .reviewer import ReviewError, review_code, review_diff
+from .reviewer import ReviewError, review_code, review_diff, review_files
 from .rules_engine import RULES, run_rules
 from .schemas import (
     DiffReviewRequest,
     DiffReviewResponse,
+    FilesReviewRequest,
+    FilesReviewResponse,
     HealthResponse,
     ReviewRequest,
     ReviewResponse,
@@ -89,6 +91,31 @@ async def review_diff_endpoint(req: DiffReviewRequest) -> DiffReviewResponse:
         removed_lines=diff_meta.get("removed_lines", 0),
         model=settings.llm_model,
         report=report,
+    )
+
+
+@app.post("/v1/review_files", response_model=FilesReviewResponse, tags=["review"])
+async def review_files_endpoint(req: FilesReviewRequest) -> FilesReviewResponse:
+    total_chars = sum(len(f.content) for f in req.files)
+    if total_chars > settings.max_code_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"文件内容总过长（限制 {settings.max_code_chars} 字符）",
+        )
+    files = [
+        {"filename": f.filename, "content": f.content, "language": f.language}
+        for f in req.files
+    ]
+    try:
+        result = review_files(files=files, context=req.context)
+    except ReviewError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return FilesReviewResponse(
+        model=settings.llm_model,
+        total_files=len(files),
+        file_reports=result["file_reports"],
+        overall_report=result["overall_report"],
     )
 
 
