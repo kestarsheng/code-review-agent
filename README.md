@@ -1,6 +1,5 @@
 # Code Review Agent
 
-<!-- CI test trigger -->
 
 **双引擎 AI 代码质量评审服务**（Code Review as a Service）。规则引擎 + LLM 语义分析 + 交叉验证，输出带分维度评分和可直接应用修复代码的结构化报告。提供 REST API 与 MCP 工具，可被 Claude Code / Codex / Cursor 等 Agent 直接调用。
 
