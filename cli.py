@@ -150,13 +150,13 @@ def to_sarif(data: dict) -> dict:
     results = []
     for i in issues:
         results.append({
-            "ruleId": i.get("rule_id", "llm"),
+            "ruleId": str(i.get("rule_id") or "llm"),
             "level": sev_map.get(i.get("severity", "info"), "note"),
-            "message": {"text": i.get("title", "") + " — " + i.get("description", "")},
+            "message": {"text": str(i.get("title", "")) + " — " + str(i.get("description", ""))},
             "locations": [{
                 "physicalLocation": {
-                    "artifactLocation": {"uri": i.get("file", "reviewed")},
-                    "region": {"startLine": i.get("line", 1)},
+                    "artifactLocation": {"uri": str(i.get("file", "reviewed"))},
+                    "region": {"startLine": int(i.get("line", 1))},
                 }
             }],
         })
