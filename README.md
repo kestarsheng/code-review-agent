@@ -1,107 +1,106 @@
 # Code Review Agent
 
+**Dual-engine AI code quality review service** (Code Review as a Service). Rule engine + LLM semantic analysis + cross-validation, producing structured reports with per-dimension scores and directly applicable fix code. Provides REST API and MCP tools, callable by Claude Code / Codex / Cursor and other Agents.
 
-**双引擎 AI 代码质量评审服务**（Code Review as a Service）。规则引擎 + LLM 语义分析 + 交叉验证，输出带分维度评分和可直接应用修复代码的结构化报告。提供 REST API 与 MCP 工具，可被 Claude Code / Codex / Cursor 等 Agent 直接调用。
-
-> [English](README_EN.md) | 中文
+> [中文](README_ZH.md) | English
 
 > Submission for **X-Agent AI MCP Hackathon 2026 · Open Innovation Challenge**.
 >
-> 在线演示：https://code-review-agent-ashy-six.vercel.app
+> Live demo: https://code-review-agent-ashy-six.vercel.app
 
-## 双引擎架构
+## Dual-Engine Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    输入：代码 / Diff / 多文件            │
+│              Input: Code / Diff / Multi-file             │
 └───────────────┬─────────────────────────────────────────┘
                 ▼
 ┌──────────────────────────┐   ┌─────────────────────────────┐
-│  ① 规则引擎（确定性）      │   │  ② LLM 语义分析（深度）      │
-│  · 26 条跨语言规则         │   │  · 显式接收规则预检结果       │
-│  · Python/JS/Java/Go/Rust │───▶  · 确认/否定规则命中（去误报） │
-│  · 安全/性能/AI幻觉/风格    │   │  · 发现语义级问题（逻辑/架构） │
-│  · 零成本、毫秒级、离线可跑  │   │  · 生成分维度评分与 fix_code │
+│  ① Rule Engine (deterministic) │   │  ② LLM Semantic Analysis (deep) │
+│  · 26 cross-language rules     │   │  · Receives rule pre-scan results │
+│  · Python/JS/Java/Go/Rust      │───▶  · Confirms/denies rule hits (removes false positives) │
+│  · Security/Perf/AI hallucination/style │   │  · Finds semantic issues (logic/architecture) │
+│  · Zero-cost, ms-level, offline │   │  · Generates per-dimension scores & fix_code │
 └───────────────┬──────────┘   └──────────────┬──────────────┘
                 ▼                              ▼
 ┌───────────────────────────────────────────────────────────┐
-│  ③ 交叉验证合并（merge_findings）                          │
-│  · rule      — 仅规则引擎命中（高置信保留）                  │
-│  · llm       — 仅 LLM 发现                                  │
-│  · confirmed — 双引擎一致（置信度提升 +0.3，最高 1.0）       │
+│  ③ Cross-Validation Merge (merge_findings)                  │
+│  · rule      — rule engine only (high confidence retained)  │
+│  · llm       — LLM only                                     │
+│  · confirmed — both engines agree (confidence +0.3, max 1.0) │
 └───────────────────────────────┬───────────────────────────┘
                                 ▼
 ┌───────────────────────────────────────────────────────────┐
-│  ④ 输出：五维度评分 + 可应用修复 + 引擎溯源                  │
+│  ④ Output: 5-dimension scores + applicable fixes + traceability │
 │  · correctness/security/performance/maintainability/best_practice │
-│  · score = 加权平均（security 30% · correctness 25%）        │
-│  · 每个 issue 附带 fix_code（可直接复制替换）                │
+│  · score = weighted avg (security 30% · correctness 25%)    │
+│  · each issue includes fix_code (copy-paste ready)          │
 └───────────────────────────────────────────────────────────┘
 ```
 
-## 功能特性
+## Features
 
-- **双引擎评审** — 规则引擎先做确定性静态扫描，LLM 带规则上下文语义评审，交叉验证降低误报
-- **五维度评分** — 正确性 / 安全性 / 性能 / 可维护性 / 最佳实践各一个 0–100 分，加权得综合分
-- **可直接应用的修复代码** — 规则引擎为 8 类关键规则自动生成 `fix_code`，LLM 覆盖更复杂的修复
-- **三种评审模式** — 单文件代码、Unified Diff（PR 变更）、多文件批量（跨文件架构问题）
-- **CLI 一键评审** — `python cli.py` 直接读 git diff 评审，无需粘贴代码
-- **MCP 工具集** — 7 个工具：评审 / Diff 评审 / 多文件评审 / 安全扫描 / 规则解释 / 修复生成 / 规则列表
-- **交互式演示页** — 暗色模式、代码高亮、维度评分条、引擎可视化、"一键应用修复"
+- **Dual-engine review** — Rule engine performs deterministic static scan first, LLM reviews with rule context, cross-validation reduces false positives
+- **5-dimension scoring** — Correctness / Security / Performance / Maintainability / Best Practice, each 0–100, weighted composite score
+- **Directly applicable fix code** — Rule engine auto-generates `fix_code` for 8 key rule types, LLM covers complex scenarios
+- **Three review modes** — Single file code, Unified Diff (PR changes), Multi-file batch (cross-file architecture issues)
+- **CLI one-click review** — `python cli.py` reads git diff directly, no pasting needed
+- **MCP toolset** — 7 tools: review / diff review / multi-file review / security scan / rule explanation / fix generation / rule listing
+- **Interactive demo page** — Dark mode, syntax highlighting, dimension score bars, engine visualization, "one-click apply fix"
 
-## CLI 一键评审（推荐）
+## CLI One-Click Review (Recommended)
 
 ```bash
-python cli.py                    # 评审工作区未提交改动 (git diff)
-python cli.py --staged           # 评审已暂存改动 (git diff --cached)
-python cli.py --commit HEAD~1    # 评审最近一次提交
-python cli.py src/utils.py       # 评审单个文件
-python cli.py --remote           # 用远程 Vercel 部署（无需启动本地服务）
-python cli.py --format json      # 输出 JSON（机器可读，用于管道/CI）
-python cli.py --sarif out.sarif  # 导出 SARIF（GitHub Code Scanning 格式）
+python cli.py                    # Review uncommitted changes (git diff)
+python cli.py --staged           # Review staged changes (git diff --cached)
+python cli.py --commit HEAD~1    # Review the last commit
+python cli.py src/utils.py       # Review a single file
+python cli.py --remote           # Use remote Vercel deployment (no local server needed)
+python cli.py --format json      # Output JSON (machine-readable, for pipes/CI)
+python cli.py --sarif out.sarif  # Export SARIF (GitHub Code Scanning format)
 ```
 
-退出码：`0` 无严重问题 | `2` 存在 critical/major（可做 CI 门禁）| `1` 运行错误
+Exit codes: `0` no serious issues | `2` critical/major found (CI gate) | `1` runtime error
 
-自动读取 git diff → 调 API → 输出带严重度图标、维度评分、修复代码的结构化报告。
+Auto-reads git diff → calls API → outputs structured report with severity icons, dimension scores, and fix code.
 
-## CI/CD 集成
+## CI/CD Integration
 
-### GitHub Actions（PR 自动评审）
+### GitHub Actions (PR Auto-Review)
 
-项目自带 `.github/workflows/code-review.yml`，PR 到 main 时自动触发：
+Includes `.github/workflows/code-review.yml`, auto-triggers on PR to main:
 
-1. 获取 PR diff → 调用 Code Review Agent API
-2. 有 critical issue 时 Action 失败（阻断 merge）
-3. 导出 SARIF 上传到 GitHub Code Scanning（issue 直接标注在 PR diff 行上）
+1. Gets PR diff → calls Code Review Agent API
+2. Fails Action if critical issues found (blocks merge)
+3. Exports SARIF and uploads to GitHub Code Scanning (issues annotated on PR diff lines)
 
 ### pre-commit hook
 
 ```bash
 # .git/hooks/pre-commit
-python cli.py --staged --remote || exit 1   # 有 critical/major 则阻止提交
+python cli.py --staged --remote || exit 1   # Blocks commit if critical/major found
 ```
 
 ### SARIF + GitHub Code Scanning
 
 ```bash
 python cli.py --sarif results.sarif --remote
-# 然后在 GitHub Action 中用 github/codeql-action/upload-sarif@v3 上传
+# Then upload in GitHub Action with github/codeql-action/upload-sarif@v3
 ```
 
-## API 一览
+## API Overview
 
-| Method | Endpoint | 说明 |
+| Method | Endpoint | Description |
 | --- | --- | --- |
-| `POST` | `/v1/review` | 评审源代码，返回结构化报告 |
-| `POST` | `/v1/review_diff` | 评审 Unified Diff（PR 变更） |
-| `POST` | `/v1/review_files` | 多文件批量评审（跨文件架构分析） |
-| `POST` | `/v1/suggest_fix` | 为问题代码生成完整修复版本 |
-| `GET` | `/v1/rules` | 列出全部规则引擎规则 |
-| `GET` | `/v1/rules/{rule_id}` | 查看单条规则详情与修复指引 |
-| `GET` | `/health` | 健康检查，返回部署 Commit |
-| `GET` | `/.well-known/xagent-verification.json` | 部署证明（slug + commit） |
-| `GET` | `/` | 在线演示页 |
+| `POST` | `/v1/review` | Review source code, return structured report |
+| `POST` | `/v1/review_diff` | Review Unified Diff (PR changes) |
+| `POST` | `/v1/review_files` | Multi-file batch review (cross-file architecture analysis) |
+| `POST` | `/v1/suggest_fix` | Generate complete fixed version for problematic code |
+| `GET` | `/v1/rules` | List all rule engine rules |
+| `GET` | `/v1/rules/{rule_id}` | View single rule details and fix guidance |
+| `GET` | `/health` | Health check, returns deployment commit |
+| `GET` | `/.well-known/xagent-verification.json` | Deployment proof (slug + commit) |
+| `GET` | `/` | Interactive demo page |
 
 ## Quick start (local)
 
@@ -109,13 +108,13 @@ python cli.py --sarif results.sarif --remote
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env             # 填入 LLM_API_KEY
+cp .env.example .env             # Fill in LLM_API_KEY
 uvicorn app.main:app --reload
 ```
 
-打开 http://127.0.0.1:8000 使用演示页，或 http://127.0.0.1:8000/docs 查看 Swagger。
+Open http://127.0.0.1:8000 for the demo page, or http://127.0.0.1:8000/docs for Swagger.
 
-### 示例：评审一段代码
+### Example: Review Code
 
 ```bash
 curl -X POST http://127.0.0.1:8000/v1/review \
@@ -123,7 +122,7 @@ curl -X POST http://127.0.0.1:8000/v1/review \
   -d '{"code": "result = eval(user_input)", "language": "python"}'
 ```
 
-响应（节选）：
+Response (abridged):
 
 ```json
 {
@@ -139,9 +138,9 @@ curl -X POST http://127.0.0.1:8000/v1/review \
         "severity": "critical",
         "category": "security",
         "line": 1,
-        "title": "使用 eval() 执行任意代码",
-        "description": "eval() 会执行任意字符串作为代码，是严重的注入风险点。",
-        "suggestion": "使用 ast.literal_eval() 或专用解析器。",
+        "title": "Using eval() to execute arbitrary code",
+        "description": "eval() executes arbitrary strings as code, posing a severe injection risk.",
+        "suggestion": "Use ast.literal_eval() or a dedicated parser.",
         "fix_code": "result = ast.literal_eval(user_input)",
         "source": "confirmed",
         "rule_id": "PY-S001",
@@ -156,7 +155,7 @@ curl -X POST http://127.0.0.1:8000/v1/review \
 }
 ```
 
-### 示例：评审一个 Diff
+### Example: Review a Diff
 
 ```bash
 curl -X POST http://127.0.0.1:8000/v1/review_diff \
@@ -164,13 +163,13 @@ curl -X POST http://127.0.0.1:8000/v1/review_diff \
   -d '{"diff": "--- a/x.py\n+++ b/x.py\n@@ -1,3 +1,4 @@\n def f():\n-    return 1\n+    return eval(data)", "language": "python"}'
 ```
 
-响应会包含 `files_changed` / `added_lines` / `removed_lines` 变更元数据与完整报告。
+Response includes `files_changed` / `added_lines` / `removed_lines` change metadata with the full report.
 
-### 示例：多文件评审
+### Example: Multi-file Review
 
 ```json
 {
-  "context": "用户服务模块",
+  "context": "User service module",
   "files": [
     {"filename": "utils.py", "content": "import os\napi_key = os.environ['KEY']", "language": "python"},
     {"filename": "main.py", "content": "from utils import *\nresult = eval(req.body)", "language": "python"}
@@ -178,17 +177,17 @@ curl -X POST http://127.0.0.1:8000/v1/review_diff \
 }
 ```
 
-返回每个文件的 `file_reports`（规则扫描）与一个 `overall_report`（LLM 跨文件架构评审）。
+Returns per-file `file_reports` (rule scan) and one `overall_report` (LLM cross-file architecture review).
 
-## MCP usage
+## MCP Usage
 
-### 本地 stdio（Claude Code / Codex / Cursor）
+### Local stdio (Claude Code / Codex / Cursor)
 
 ```bash
 python -m app.mcp_server          # stdio transport
 ```
 
-注册到客户端配置：
+Register in client config:
 
 ```json
 {
@@ -201,9 +200,9 @@ python -m app.mcp_server          # stdio transport
 }
 ```
 
-### 远程 streamable HTTP（同一部署，无需本地 Python）
+### Remote streamable HTTP (same deployment, no local Python needed)
 
-部署后访问 `https://<your-host>/mcp`，在 MCP 客户端中配置：
+After deployment, access `https://<your-host>/mcp`, configure in MCP client:
 
 ```json
 {
@@ -216,73 +215,73 @@ python -m app.mcp_server          # stdio transport
 }
 ```
 
-> 远程 MCP 端点与 REST API 共用同一个服务器，部署后 `/mcp` 提供 streamable HTTP 协议，`/v1/*` 提供 REST。
+> The remote MCP endpoint and REST API share the same server. After deployment, `/mcp` provides streamable HTTP protocol, `/v1/*` provides REST.
 
-### 使用引导（给 Agent）
+### Usage Guide (for Agents)
 
-1. **先免费快筛**：用 `detect_security` / `list_rules` / `explain_issue`（无 LLM 调用，毫秒级返回）
-2. **深度评审**：用 `review_code` / `review_diff` / `review_files`，默认 `detail="brief"`（节省上下文，仅返回标题级 issue）
-3. **需要完整报告时**：`detail="full"` 返回每个 issue 的完整 description / suggestion / fix_code
-4. **修复**：用 `suggest_fix` 获取可直接替换的 `fixed_code`
+1. **Free quick scan first**: Use `detect_security` / `list_rules` / `explain_issue` (no LLM call, ms-level response)
+2. **Deep review**: Use `review_code` / `review_diff` / `review_files`, default `detail="brief"` (saves context, returns title-level issues only)
+3. **Full report when needed**: `detail="full"` returns complete description / suggestion / fix_code for each issue
+4. **Fix**: Use `suggest_fix` to get directly replaceable `fixed_code`
 
-### MCP 工具
+### MCP Tools
 
-| 工具 | 参数 | LLM | 说明 |
+| Tool | Parameters | LLM | Description |
 | --- | --- | --- | --- |
-| `review_code` | `code, language?, context?, detail?` | ✅ | 评审源代码（`detail: "brief"\|"full"`） |
-| `review_diff` | `diff, language?, context?, detail?` | ✅ | 评审 Unified Diff |
-| `review_files` | `files: [{filename, content, language?}], context?, detail?` | ✅ | 多文件批量评审（结构化参数，非 JSON 字符串） |
-| `detect_security` | `code, language?` | ❌ | 仅规则引擎安全扫描，即时返回 |
-| `explain_issue` | `rule_id` | ❌ | 解释某条规则（定义/严重级别/修复指引） |
-| `suggest_fix` | `code, language?, context?` | ✅ | 返回修复后的完整代码（fixed_code + 变更说明） |
-| `list_rules` | — | ❌ | 列出全部规则 |
+| `review_code` | `code, language?, context?, detail?` | ✅ | Review source code (`detail: "brief"\|"full"`) |
+| `review_diff` | `diff, language?, context?, detail?` | ✅ | Review Unified Diff |
+| `review_files` | `files: [{filename, content, language?}], context?, detail?` | ✅ | Multi-file batch review (structured params, not JSON string) |
+| `detect_security` | `code, language?` | ❌ | Rule engine security scan only, instant response |
+| `explain_issue` | `rule_id` | ❌ | Explain a rule (definition/severity/fix guidance) |
+| `suggest_fix` | `code, language?, context?` | ✅ | Return fixed code (fixed_code + change explanation) |
+| `list_rules` | — | ❌ | List all rules |
 
-> `review_files` 的 `files` 参数是**结构化数组**，每个元素 `{filename, content, language?}`，Agent 无需手工拼 JSON 字符串。
+> `review_files` `files` parameter is a **structured array**, each element `{filename, content, language?}`. Agents don't need to manually compose JSON strings.
 
-## 规则引擎
+## Rule Engine
 
-内置 **26 条跨语言规则**，覆盖 Python / JavaScript / Java / Go / Rust / 跨语言通用模式：
+Built-in **26 cross-language rules** covering Python / JavaScript / Java / Go / Rust / cross-language general patterns:
 
-| 类别 | 示例 |
+| Category | Examples |
 | --- | --- |
-| Security | `eval`/`exec`、SQL 注入、命令注入、硬编码密钥、`pickle.loads`、`innerHTML` XSS |
-| Performance | 嵌套循环 O(n²)、字典遍历未用 `.items()`、预生成大列表 |
-| AI Pattern | 幻觉导入框架内部模块、`forEach` 中 `await`、catch 吞异常 |
-| Maintainability / Best Practice | TODO/FIXME、裸 `except`、缺类型注解 |
+| Security | `eval`/`exec`, SQL injection, command injection, hardcoded secrets, `pickle.loads`, `innerHTML` XSS |
+| Performance | Nested loops O(n²), dict iteration without `.items()`, pre-generating large lists |
+| AI Pattern | Hallucinated imports of framework internals, `forEach` with `await`, catch swallowing exceptions |
+| Maintainability / Best Practice | TODO/FIXME, bare `except`, missing type annotations |
 
-8 类关键规则带 **自动修复代码生成**（`eval`→`ast.literal_eval`、`innerHTML`→`textContent`、硬编码密钥→`os.environ` 等）。
+8 key rule types have **auto fix code generation** (`eval`→`ast.literal_eval`, `innerHTML`→`textContent`, hardcoded secret→`os.environ`, etc.).
 
-## 配置（环境变量）
+## Configuration (Environment Variables)
 
 | Var | Default | Description |
 | --- | --- | --- |
 | `LLM_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible base URL |
-| `LLM_API_KEY` | — | API key（必填） |
-| `LLM_MODEL` | `deepseek-chat` | 模型名 |
-| `LLM_TIMEOUT_SECONDS` | `120` | LLM 请求超时 |
-| `MAX_CODE_CHARS` | `60000` | 单次评审最大字符数 |
-| `COMMIT` | `dev` | 部署 Commit，/health 与验证文件返回 |
+| `LLM_API_KEY` | — | API key (required) |
+| `LLM_MODEL` | `deepseek-chat` | Model name |
+| `LLM_TIMEOUT_SECONDS` | `120` | LLM request timeout |
+| `MAX_CODE_CHARS` | `60000` | Max characters per review |
+| `COMMIT` | `dev` | Deployment commit, returned by /health and verification file |
 
-## 部署
+## Deployment
 
-- **Vercel**（当前）：`vercel.json` 已配置 Serverless 服务；在 Vercel 项目设置环境变量后推送即可
+- **Vercel** (current): `vercel.json` configured for Serverless service; push after setting env vars in Vercel project
 - **Docker**: `docker build -t code-review-agent . && docker run -p 8000:8000 code-review-agent`
-- **Render**: 使用 `render.yaml`，推送仓库并设置环境变量
+- **Render**: Use `render.yaml`, push repo and set env vars
 
-部署后验证：
+Post-deploy verification:
 
 ```bash
 curl https://<your-host>/health
 curl https://<your-host>/.well-known/xagent-verification.json
 ```
 
-## 测试
+## Testing
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-58 个单元测试，覆盖规则引擎、Diff 解析、五维度评分、修复代码生成、多文件评审与完整双引擎流程。
+58 unit tests covering rule engine, diff parsing, 5-dimension scoring, fix code generation, multi-file review, and full dual-engine flow.
 
 ## License
 

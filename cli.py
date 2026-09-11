@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""一键评审 git 改动，无需粘贴代码。
+"""One-click code review of git changes — no pasting needed.
 
-用法：
-  python cli.py                      评审工作区未提交改动 (git diff)
-  python cli.py --staged             评审已暂存改动 (git diff --cached)
-  python cli.py --commit HEAD~1      评审最近一次提交的改动
-  python cli.py --commit HEAD~3      评审最近 3 次提交的改动
-  python cli.py src/utils.py         评审单个文件
-  python cli.py --remote             用远程 Vercel 部署而非本地
-  python cli.py --format json        输出 JSON（机器可读，用于管道/CI）
-  python cli.py --sarif out.sarif    导出 SARIF（GitHub Code Scanning 格式）
+Usage:
+  python cli.py                      Review uncommitted changes (git diff)
+  python cli.py --staged             Review staged changes (git diff --cached)
+  python cli.py --commit HEAD~1      Review the last commit
+  python cli.py --commit HEAD~3      Review the last 3 commits
+  python cli.py src/utils.py         Review a single file
+  python cli.py --remote             Use remote Vercel deployment
+  python cli.py --format json        Output JSON (machine-readable, for pipes/CI)
+  python cli.py --sarif out.sarif    Export SARIF (GitHub Code Scanning format)
 
-退出码：
-  0  无问题或仅有 info/minor
-  2  存在 critical 或 major 级别问题（可用作 CI 门禁）
-  1  运行错误（git 失败、API 连接失败等）
+Exit codes:
+  0  No issues or only info/minor
+  2  Critical or major issues found (use as CI gate)
+  1  Runtime error (git failure, API connection failure, etc.)
 """
 import argparse
 import json
@@ -46,7 +46,7 @@ def run_git(*args) -> str:
         ["git"] + list(args), capture_output=True, text=True, encoding="utf-8"
     )
     if result.returncode != 0:
-        print(f"git 错误: {result.stderr.strip()}", file=sys.stderr)
+        print(f"git error: {result.stderr.strip()}", file=sys.stderr)
         sys.exit(1)
     return result.stdout
 
@@ -70,10 +70,10 @@ def call_api(base_url: str, endpoint: str, payload: dict) -> dict:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")
-        print(f"API 错误 {e.code}: {body}", file=sys.stderr)
+        print(f"API error {e.code}: {body}", file=sys.stderr)
         sys.exit(1)
     except urllib.error.URLError as e:
-        print(f"连接失败: {e}\n请先启动服务: uvicorn app.main:app", file=sys.stderr)
+        print(f"Connection failed: {e}\nPlease start the service first: uvicorn app.main:app", file=sys.stderr)
         sys.exit(1)
 
 
@@ -83,7 +83,7 @@ SOURCE_ICON = {"rule": "⚡", "llm": "🧠", "confirmed": "✅"}
 
 def print_report(data: dict, is_diff: bool):
     if not data.get("ok"):
-        print(f"❌ {data.get('error', '未知错误')}")
+        print(f"❌ {data.get('error', 'Unknown error')}")
         return
 
     report = data.get("report", {})
@@ -92,23 +92,23 @@ def print_report(data: dict, is_diff: bool):
     dims = report.get("dimension_scores", {})
 
     print(f"\n{'='*60}")
-    print(f"  评分: {score}/100 ({grade}级)")
+    print(f"  Score: {score}/100 (grade {grade})")
     if dims:
         dim_labels = {
-            "correctness": "正确性", "security": "安全性",
-            "performance": "性能", "maintainability": "可维护性",
-            "best_practice": "最佳实践",
+            "correctness": "Correctness", "security": "Security",
+            "performance": "Performance", "maintainability": "Maintainability",
+            "best_practice": "Best Practice",
         }
         dim_str = "  ".join(f"{dim_labels[k]}:{v}" for k, v in dims.items() if k in dim_labels)
         print(f"  {dim_str}")
 
     if is_diff and "files_changed" in data:
         files = data.get("files_changed", [])
-        print(f"  变更: {', '.join(files)}  +{data.get('added_lines',0)} -{data.get('removed_lines',0)}")
+        print(f"  Changes: {', '.join(files)}  +{data.get('added_lines',0)} -{data.get('removed_lines',0)}")
 
     info = report.get("engine_info", {})
     if info:
-        print(f"  引擎: 规则{info.get('rule_count',0)} LLM{info.get('llm_count',0)} 确认{info.get('confirmed_count',0)}")
+        print(f"  Engine: Rules={info.get('rule_count',0)} LLM={info.get('llm_count',0)} Confirmed={info.get('confirmed_count',0)}")
 
     print(f"{'='*60}\n")
 
@@ -118,26 +118,26 @@ def print_report(data: dict, is_diff: bool):
 
     issues = report.get("issues", [])
     if not issues:
-        print("✅ 未发现问题\n")
+        print("✅ No issues found\n")
         return
 
-    print(f"发现 {len(issues)} 个问题:\n")
+    print(f"Found {len(issues)} issues:\n")
     for i in issues:
         sev = i.get("severity", "info")
         src = i.get("source", "llm")
-        line = f"行{i['line']}" if i.get("line") else "?"
+        line = f"L{i['line']}" if i.get("line") else "?"
         icon = SEVERITY_ICON.get(sev, "•")
         sicon = SOURCE_ICON.get(src, "")
         rule = f" [{i['rule_id']}]" if i.get("rule_id") else ""
         print(f"  {icon} {sicon} {i.get('title', '')} ({line}){rule}")
         print(f"     {i.get('description', '')[:120]}")
         if i.get("fix_code"):
-            print(f"     🔧 修复: {i['fix_code'][:100]}")
+            print(f"     🔧 Fix: {i['fix_code'][:100]}")
         print()
 
     strengths = report.get("strengths", [])
     if strengths:
-        print("👍 优点:")
+        print("👍 Strengths:")
         for s in strengths[:3]:
             print(f"  • {s}")
         print()
@@ -181,36 +181,36 @@ def get_exit_code(data: dict) -> int:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="一键代码评审")
-    parser.add_argument("--staged", action="store_true", help="评审已暂存改动")
-    parser.add_argument("--commit", metavar="REF", help="评审指定提交的改动 (如 HEAD~1)")
-    parser.add_argument("--remote", action="store_true", help="用远程 Vercel 部署")
-    parser.add_argument("--url", metavar="URL", help="自定义 API 地址")
-    parser.add_argument("--format", choices=["table", "json"], default="table", help="输出格式")
-    parser.add_argument("--sarif", metavar="FILE", help="导出 SARIF 格式到文件")
-    parser.add_argument("file", nargs="?", help="评审单个文件")
+    parser = argparse.ArgumentParser(description="One-click code review")
+    parser.add_argument("--staged", action="store_true", help="Review staged changes")
+    parser.add_argument("--commit", metavar="REF", help="Review changes in specified commit (e.g. HEAD~1)")
+    parser.add_argument("--remote", action="store_true", help="Use remote Vercel deployment")
+    parser.add_argument("--url", metavar="URL", help="Custom API URL")
+    parser.add_argument("--format", choices=["table", "json"], default="table", help="Output format")
+    parser.add_argument("--sarif", metavar="FILE", help="Export SARIF format to file")
+    parser.add_argument("file", nargs="?", help="Review a single file")
     args = parser.parse_args()
 
     base = args.url or (REMOTE_URL if args.remote else LOCAL_URL)
 
     if args.file:
         if not os.path.exists(args.file):
-            print(f"文件不存在: {args.file}", file=sys.stderr)
+            print(f"File not found: {args.file}", file=sys.stderr)
             sys.exit(1)
         code = open(args.file, "r", encoding="utf-8").read()
         lang = detect_lang(args.file)
         if args.format == "table":
-            print(f"评审文件: {args.file} ({lang or '未知'})")
+            print(f"Reviewing file: {args.file} ({lang or 'unknown'})")
         data = call_api(base, "/v1/review", {"code": code, "language": lang})
         is_diff = False
     else:
         diff = get_diff(args.staged, args.commit)
         if not diff.strip():
-            print("没有检测到改动。")
+            print("No changes detected.")
             return
         if args.format == "table":
             line_count = diff.count("\n")
-            print(f"评审 diff: {line_count} 行改动")
+            print(f"Reviewing diff: {line_count} lines changed")
         data = call_api(base, "/v1/review_diff", {"diff": diff})
         is_diff = True
 
@@ -219,7 +219,7 @@ def main():
         with open(args.sarif, "w", encoding="utf-8") as f:
             json.dump(sarif, f, ensure_ascii=False, indent=2)
         if args.format == "table":
-            print(f"SARIF 已导出到 {args.sarif}")
+            print(f"SARIF exported to {args.sarif}")
 
     if args.format == "json":
         print(json.dumps(data, ensure_ascii=False, indent=2))
