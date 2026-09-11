@@ -1,8 +1,9 @@
 # Code Review Agent
 
-<!-- CI test trigger -->
 
 **双引擎 AI 代码质量评审服务**（Code Review as a Service）。规则引擎 + LLM 语义分析 + 交叉验证，输出带分维度评分和可直接应用修复代码的结构化报告。提供 REST API 与 MCP 工具，可被 Claude Code / Codex / Cursor 等 Agent 直接调用。
+
+> [English](README_EN.md) | 中文
 
 > Submission for **X-Agent AI MCP Hackathon 2026 · Open Innovation Challenge**.
 >
@@ -281,7 +282,7 @@ curl https://<your-host>/.well-known/xagent-verification.json
 python -m pytest tests/ -v
 ```
 
-48 个单元测试，覆盖规则引擎、Diff 解析、五维度评分、修复代码生成、多文件评审与完整双引擎流程。
+53 个单元测试，覆盖规则引擎、Diff 解析、五维度评分、修复代码生成、多文件评审与完整双引擎流程。
 
 ## License
 

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Code Review Agent — 双引擎 AI 代码评审</title>
-<meta name="description" content="规则引擎 + LLM 语义分析 + 交叉验证，输出带分维度评分和可应用修复代码的结构化报告。">
+<title>Code Review Agent — Dual-Engine AI Code Review</title>
+<meta name="description" content="Rule engine + LLM semantic analysis + cross-validation, producing structured reports with per-dimension scores and applicable fix code.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
 <style>
 /* ═══ Design System ═══ */
@@ -39,9 +39,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(12px);b
 .nav-links{display:flex;align-items:center;gap:28px}
 .nav-links a{font-size:.85rem;color:var(--text-2);transition:color .2s}
 .nav-links a:hover{color:var(--text)}
-.nav-actions{display:flex;align-items:center;gap:12px}
-.theme-toggle{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
-.theme-toggle:hover{border-color:var(--border-2);background:var(--surface-2)}
+.nav-actions{display:flex;align-items:center;gap:10px}
+.theme-toggle,.lang-toggle{height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s;color:var(--text)}
+.theme-toggle{width:36px}
+.lang-toggle{padding:0 10px;font-weight:600;font-size:.78rem}
+.theme-toggle:hover,.lang-toggle:hover{border-color:var(--border-2);background:var(--surface-2)}
 .nav-cta{font-size:.82rem;font-weight:600;padding:7px 14px;border-radius:8px;background:var(--primary);color:#fff;border:0;cursor:pointer;transition:all .2s}
 .nav-cta:hover{background:var(--primary-2);transform:translateY(-1px)}
 @media(max-width:768px){.nav-links{display:none}}
@@ -180,14 +182,15 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
   <div class="nav-inner">
     <a href="#" class="nav-logo"><span class="dot">🔍</span> Code Review Agent</a>
     <div class="nav-links">
-      <a href="#features">功能</a>
-      <a href="#demo">在线试用</a>
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#demo" data-i18n="nav.demo">Try Online</a>
       <a href="#api">API</a>
       <a href="https://github.com/kestarsheng/code-review-agent" target="_blank">GitHub</a>
     </div>
     <div class="nav-actions">
+      <button class="lang-toggle" onclick="toggleLang()" id="lang-btn">中文</button>
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀️</button>
-      <button class="nav-cta" onclick="document.getElementById('demo').scrollIntoView()">立即试用</button>
+      <button class="nav-cta" onclick="document.getElementById('demo').scrollIntoView()" data-i18n="nav.cta">Try Now</button>
     </div>
   </div>
 </nav>
@@ -196,18 +199,18 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-content">
-    <div class="hero-badge"><span class="pulse"></span> 双引擎评审 · 开箱即用 · 多语言支持</div>
-    <h1>让每一行代码<br>都经过<span class="grad"> 双引擎评审</span></h1>
-    <p>规则引擎做确定性静态扫描，LLM 做语义级深度分析，交叉验证降低误报。输出五维度评分和可直接应用的修复代码。</p>
+    <div class="hero-badge"><span class="pulse"></span> <span data-i18n="hero.badge">Dual-engine review · Out of the box · Multi-language</span></div>
+    <h1 data-i18n-html="hero.title">Make every line of code<br>go through <span class="grad">dual-engine review</span></h1>
+    <p data-i18n="hero.desc">Rule engine performs deterministic static scan, LLM does semantic deep analysis, cross-validation reduces false positives. Outputs 5-dimension scores and directly applicable fix code.</p>
     <div class="hero-actions">
-      <button class="btn-primary" onclick="document.getElementById('demo').scrollIntoView()">🚀 在线试用</button>
-      <button class="btn-ghost" onclick="copyCli()">📋 复制 CLI 命令</button>
+      <button class="btn-primary" onclick="document.getElementById('demo').scrollIntoView()" data-i18n="hero.tryBtn">🚀 Try Online</button>
+      <button class="btn-ghost" onclick="copyCli()" data-i18n="hero.cliBtn">📋 Copy CLI Command</button>
     </div>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="num">22</div><div class="lbl">内置规则</div></div>
-      <div class="hero-stat"><div class="num">5</div><div class="lbl">维度评分</div></div>
-      <div class="hero-stat"><div class="num">7</div><div class="lbl">MCP 工具</div></div>
-      <div class="hero-stat"><div class="num">4</div><div class="lbl">语言覆盖</div></div>
+      <div class="hero-stat"><div class="num">22</div><div class="lbl" data-i18n="hero.statRules">Built-in Rules</div></div>
+      <div class="hero-stat"><div class="num">5</div><div class="lbl" data-i18n="hero.statDims">Dimension Scores</div></div>
+      <div class="hero-stat"><div class="num">7</div><div class="lbl" data-i18n="hero.statMcp">MCP Tools</div></div>
+      <div class="hero-stat"><div class="num">4</div><div class="lbl" data-i18n="hero.statLangs">Languages</div></div>
     </div>
   </div>
 </section>
@@ -216,39 +219,39 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
 <section id="features">
   <div class="section-inner">
     <div class="section-head">
-      <h2>为什么选择双引擎</h2>
-      <p>单一规则引擎只能发现已知模式，单一 LLM 容易漏报。双引擎交叉验证兼顾确定性与深度。</p>
+      <h2 data-i18n="features.title">Why Dual-Engine</h2>
+      <p data-i18n="features.desc">A single rule engine only finds known patterns; a single LLM may miss issues. Dual-engine cross-validation balances determinism and depth.</p>
     </div>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>规则引擎 — 确定性扫描</h3>
-        <p>22 条跨语言规则覆盖安全漏洞、性能反模式、AI 幻觉模式。毫秒级返回，零 API 成本，离线可跑。</p>
+        <h3 data-i18n="features.f1t">Rule Engine — Deterministic Scan</h3>
+        <p data-i18n="features.f1d">22 cross-language rules covering security vulnerabilities, performance anti-patterns, AI hallucination patterns. Millisecond response, zero API cost, offline capable.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🧠</div>
-        <h3>LLM 语义分析 — 深度理解</h3>
-        <p>接收规则预检结果后做语义级评审：逻辑错误、架构缺陷、业务边界。确认或否定规则命中，消除误报。</p>
+        <h3 data-i18n="features.f2t">LLM Semantic Analysis — Deep Understanding</h3>
+        <p data-i18n="features.f2d">Receives rule pre-scan results then does semantic review: logic errors, architecture flaws, business boundaries. Confirms or denies rule hits, eliminating false positives.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">✅</div>
-        <h3>交叉验证 — 三级溯源</h3>
-        <p>每个 issue 标注来源：rule（仅规则）、llm（仅 LLM）、confirmed（双引擎一致）。置信度自动提升。</p>
+        <h3 data-i18n="features.f3t">Cross-Validation — 3-Level Traceability</h3>
+        <p data-i18n="features.f3d">Each issue is tagged with source: rule (engine only), llm (LLM only), confirmed (both agree). Confidence auto-boosted.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📊</div>
-        <h3>五维度评分 — 量化质量</h3>
-        <p>正确性、安全性、性能、可维护性、最佳实践各 0–100 分。综合分按安全 30% + 正确性 25% 加权。</p>
+        <h3 data-i18n="features.f4t">5-Dimension Scoring — Quantified Quality</h3>
+        <p data-i18n="features.f4d">Correctness, Security, Performance, Maintainability, Best Practice — each 0–100. Composite score weighted: security 30% + correctness 25%.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔧</div>
-        <h3>修复代码 — 可直接应用</h3>
-        <p>每个 issue 附带 fix_code 片段，复制即可替换。规则引擎为 8 类关键规则自动生成，LLM 覆盖复杂场景。</p>
+        <h3 data-i18n="features.f5t">Fix Code — Directly Applicable</h3>
+        <p data-i18n="features.f5d">Each issue includes a fix_code snippet, copy-paste ready. Rule engine auto-generates for 8 key rule types, LLM covers complex scenarios.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔌</div>
-        <h3>MCP + REST — 双协议</h3>
-        <p>7 个 MCP 工具供 Agent 调用，REST API 供集成。远程 /mcp 端点与 /v1/* 共存于同一服务器。</p>
+        <h3 data-i18n="features.f6t">MCP + REST — Dual Protocol</h3>
+        <p data-i18n="features.f6d">7 MCP tools for Agent calls, REST API for integration. Remote /mcp endpoint and /v1/* coexist on the same server.</p>
       </div>
     </div>
   </div>
@@ -258,23 +261,23 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
 <section id="demo" class="demo-section">
   <div class="section-inner">
     <div class="section-head">
-      <h2>在线试用</h2>
-      <p>粘贴代码或 diff，点击评审。也可用 CLI 一键评审 git 改动：<code>python cli.py --commit HEAD~1</code></p>
+      <h2 data-i18n="demo.title">Try Online</h2>
+      <p data-i18n="demo.desc">Paste code or diff, click review. Or use CLI: <code>python cli.py --commit HEAD~1</code></p>
     </div>
     <div class="demo-card">
       <div class="demo-tabs">
-        <div class="demo-tab active" id="tab-code" onclick="switchTab('code')">代码评审</div>
-        <div class="demo-tab" id="tab-diff" onclick="switchTab('diff')">Diff 评审</div>
-        <div class="demo-tab" id="tab-files" onclick="switchTab('files')">多文件</div>
-        <div class="demo-tab" id="tab-fix" onclick="switchTab('fix')">自动修复</div>
+        <div class="demo-tab active" id="tab-code" onclick="switchTab('code')" data-i18n="demo.tabCode">Code Review</div>
+        <div class="demo-tab" id="tab-diff" onclick="switchTab('diff')" data-i18n="demo.tabDiff">Diff Review</div>
+        <div class="demo-tab" id="tab-files" onclick="switchTab('files')" data-i18n="demo.tabFiles">Multi-File</div>
+        <div class="demo-tab" id="tab-fix" onclick="switchTab('fix')" data-i18n="demo.tabFix">Auto Fix</div>
       </div>
       <div class="demo-body">
         <div class="demo-row">
-          <input id="language" placeholder="语言 (python / java / js / go)" value="python">
-          <input id="context" placeholder="任务上下文（可选）" style="flex:2;">
+          <input id="language" data-i18n-ph="demo.phLang" placeholder="Language (python / java / js / go)" value="python">
+          <input id="context" data-i18n-ph="demo.phCtx" placeholder="Task context (optional)" style="flex:2;">
         </div>
         <div id="single-block">
-          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px" id="code-label">源代码</label>
+          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px" id="code-label" data-i18n="demo.lblCode">Source Code</label>
           <textarea id="code" spellcheck="false">def get_user(user_id):
     query = f"SELECT * FROM users WHERE id = {user_id}"
     return db.execute(query).fetchone()
@@ -285,8 +288,8 @@ def save_profile(user):
     db.commit()</textarea>
         </div>
         <div id="files-block" style="display:none;">
-          <div class="demo-hint">💡 <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 直接评审 git 改动，无需手动粘贴。</div>
-          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">多文件（用 <code># == 文件名 ==</code> 分隔）</label>
+          <div class="demo-hint" data-i18n="demo.hint">💡 <b>CLI recommended:</b><code>python cli.py --staged</code> or <code>python cli.py --commit HEAD~1</code> to review git changes directly, no pasting needed.</div>
+          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px" data-i18n="demo.lblFiles">Multi-file (separate with <code># == filename ==</code>)</label>
           <textarea id="files-area" spellcheck="false"># == utils.py ==
 import os
 
@@ -303,15 +306,15 @@ def handler(event, context):
     result = eval(event["body"])
     return {"statusCode": 200, "body": result}</textarea>
         </div>
-        <button class="btn-run" id="btn">▶ 开始评审</button>
+        <button class="btn-run" id="btn" data-i18n="demo.runBtn">▶ Start Review</button>
         <div class="demo-status" id="status"></div>
       </div>
     </div>
     <div class="report-card" id="result-card">
-      <div class="report-empty" id="report">点击「开始评审」查看结果</div>
+      <div class="report-empty" id="report" data-i18n="demo.emptyResult">Click "Start Review" to see results</div>
     </div>
     <div class="report-card" id="fix-card" style="display:none;">
-      <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px">🔧 修复方案</h3>
+      <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px" data-i18n="demo.fixTitle">🔧 Fix Solution</h3>
       <div id="fix-report"></div>
     </div>
   </div>
@@ -321,18 +324,18 @@ def handler(event, context):
 <section id="api">
   <div class="section-inner">
     <div class="section-head">
-      <h2>API 一览</h2>
-      <p>REST API 与 MCP 工具共存于同一服务器，部署后即可使用。</p>
+      <h2 data-i18n="api.title">API Overview</h2>
+      <p data-i18n="api.desc">REST API and MCP tools coexist on the same server, ready to use after deployment.</p>
     </div>
     <div class="api-grid">
-      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review</div><div class="desc">评审源代码，返回五维度评分 + 问题列表 + 修复代码</div></div>
-      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_diff</div><div class="desc">评审 Unified Diff，返回变更元数据 + 评审报告</div></div>
-      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_files</div><div class="desc">多文件批量评审，per-file 扫描 + 跨文件架构分析</div></div>
-      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/suggest_fix</div><div class="desc">为问题代码生成完整修复版本（fixed_code + 变更说明）</div></div>
-      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules</span></div><div class="desc">列出全部 22 条规则引擎规则</div></div>
-      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules/{rule_id}</div><div class="desc">查看单条规则详情与修复指引</div></div>
-      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/mcp</div><div class="desc">远程 MCP streamable HTTP 端点（7 个工具）</div></div>
-      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/health</div><div class="desc">健康检查，返回部署 commit</div></div>
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review</div><div class="desc" data-i18n="api.r1">Review source code, return 5-dimension scores + issues + fix code</div></div>
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_diff</div><div class="desc" data-i18n="api.r2">Review Unified Diff, return change metadata + review report</div></div>
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/review_files</div><div class="desc" data-i18n="api.r3">Multi-file batch review, per-file scan + cross-file analysis</div></div>
+      <div class="api-card"><span class="api-method api-post">POST</span><div class="path">/v1/suggest_fix</div><div class="desc" data-i18n="api.r4">Generate complete fixed version (fixed_code + change notes)</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules</div><div class="desc" data-i18n="api.r5">List all 22 rule engine rules</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/v1/rules/{rule_id}</div><div class="desc" data-i18n="api.r6">View single rule details and fix guidance</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/mcp</div><div class="desc" data-i18n="api.r7">Remote MCP streamable HTTP endpoint (7 tools)</div></div>
+      <div class="api-card"><span class="api-method api-get">GET</span><div class="path">/health</div><div class="desc" data-i18n="api.r8">Health check, returns deployment commit</div></div>
     </div>
   </div>
 </section>
@@ -345,8 +348,8 @@ def handler(event, context):
       <span>Code Review Agent</span>
     </div>
     <div class="footer-links">
-      <a href="#features">功能</a>
-      <a href="#demo">试用</a>
+      <a href="#features" data-i18n="footer.features">Features</a>
+      <a href="#demo" data-i18n="footer.demo">Try</a>
       <a href="#api">API</a>
       <a href="https://github.com/kestarsheng/code-review-agent" target="_blank">GitHub</a>
       <a href="https://code-review-agent-ashy-six.vercel.app/docs" target="_blank">Swagger</a>
@@ -359,6 +362,93 @@ def handler(event, context):
 
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
 <script>
+/* ═══ i18n ═══ */
+const I18N={
+  en:{
+    "nav.features":"Features","nav.demo":"Try Online","nav.cta":"Try Now",
+    "hero.badge":"Dual-engine review · Out of the box · Multi-language",
+    "hero.title":'Make every line of code<br>go through <span class="grad">dual-engine review</span>',
+    "hero.desc":"Rule engine performs deterministic static scan, LLM does semantic deep analysis, cross-validation reduces false positives. Outputs 5-dimension scores and directly applicable fix code.",
+    "hero.tryBtn":"🚀 Try Online","hero.cliBtn":"📋 Copy CLI Command",
+    "hero.statRules":"Built-in Rules","hero.statDims":"Dimension Scores","hero.statMcp":"MCP Tools","hero.statLangs":"Languages",
+    "features.title":"Why Dual-Engine","features.desc":"A single rule engine only finds known patterns; a single LLM may miss issues. Dual-engine cross-validation balances determinism and depth.",
+    "features.f1t":"Rule Engine — Deterministic Scan","features.f1d":"22 cross-language rules covering security vulnerabilities, performance anti-patterns, AI hallucination patterns. Millisecond response, zero API cost, offline capable.",
+    "features.f2t":"LLM Semantic Analysis — Deep Understanding","features.f2d":"Receives rule pre-scan results then does semantic review: logic errors, architecture flaws, business boundaries. Confirms or denies rule hits, eliminating false positives.",
+    "features.f3t":"Cross-Validation — 3-Level Traceability","features.f3d":"Each issue is tagged with source: rule (engine only), llm (LLM only), confirmed (both agree). Confidence auto-boosted.",
+    "features.f4t":"5-Dimension Scoring — Quantified Quality","features.f4d":"Correctness, Security, Performance, Maintainability, Best Practice — each 0–100. Composite score weighted: security 30% + correctness 25%.",
+    "features.f5t":"Fix Code — Directly Applicable","features.f5d":"Each issue includes a fix_code snippet, copy-paste ready. Rule engine auto-generates for 8 key rule types, LLM covers complex scenarios.",
+    "features.f6t":"MCP + REST — Dual Protocol","features.f6d":"7 MCP tools for Agent calls, REST API for integration. Remote /mcp endpoint and /v1/* coexist on the same server.",
+    "demo.title":"Try Online","demo.desc":"Paste code or diff, click review. Or use CLI: <code>python cli.py --commit HEAD~1</code>",
+    "demo.tabCode":"Code Review","demo.tabDiff":"Diff Review","demo.tabFiles":"Multi-File","demo.tabFix":"Auto Fix",
+    "demo.phLang":"Language (python / java / js / go)","demo.phCtx":"Task context (optional)",
+    "demo.lblCode":"Source Code","demo.lblFiles":"Multi-file (separate with <code># == filename ==</code>)",
+    "demo.hint":"💡 <b>CLI recommended:</b><code>python cli.py --staged</code> or <code>python cli.py --commit HEAD~1</code> to review git changes directly, no pasting needed.",
+    "demo.runBtn":"▶ Start Review","demo.emptyResult":'Click "Start Review" to see results',"demo.fixTitle":"🔧 Fix Solution",
+    "api.title":"API Overview","api.desc":"REST API and MCP tools coexist on the same server, ready to use after deployment.",
+    "api.r1":"Review source code, return 5-dimension scores + issues + fix code","api.r2":"Review Unified Diff, return change metadata + review report",
+    "api.r3":"Multi-file batch review, per-file scan + cross-file analysis","api.r4":"Generate complete fixed version (fixed_code + change notes)",
+    "api.r5":"List all 22 rule engine rules","api.r6":"View single rule details and fix guidance",
+    "api.r7":"Remote MCP streamable HTTP endpoint (7 tools)","api.r8":"Health check, returns deployment commit",
+    "footer.features":"Features","footer.demo":"Try",
+    "dim.correctness":"Correctness","dim.security":"Security","dim.performance":"Performance","dim.maintainability":"Maintainability","dim.best_practice":"Best Practice",
+    "eng.rule":"⚡ Rule Hits","eng.llm":"🧠 LLM Found","eng.conf":"✅ Cross-Confirmed","eng.total":"🔍 Rules Run",
+    "issue.noIssues":"✅ No issues found","issue.category":"Category:","issue.suggestion":"Suggestion:",
+    "issue.fixCode":"Fix code:","report.dims":"📊 Dimension Scores","report.issues":"🚨 Issues","report.strengths":"👍 Strengths","report.improvements":"🚀 Improvements",
+    "report.model":"Model:","report.issuesCount":"issues","report.grade":"grade",
+    "toast.copied":"Copied ✅","toast.copyFail":"Copy failed","toast.cliCopied":"CLI command copied ✅","toast.applied":"Applied to input box",
+    "demo.reviewing":"⏳ Dual-engine reviewing (3-10s)...","demo.reviewingShort":"⏳ Reviewing...","demo.done":"✅ Review complete","demo.pasteFirst":"Please paste content first",
+    "demo.fixGenerated":"✅ Fix solution generated","demo.fixDetected":"rule issues detected","demo.copyFix":"📋 Copy fix code",
+    "demo.applied":"Fix code applied to input box","demo.noFiles":"No files parsed",
+  },
+  zh:{
+    "nav.features":"功能","nav.demo":"在线试用","nav.cta":"立即试用",
+    "hero.badge":"双引擎评审 · 开箱即用 · 多语言支持",
+    "hero.title":'让每一行代码<br>都经过<span class="grad"> 双引擎评审</span>',
+    "hero.desc":"规则引擎做确定性静态扫描，LLM 做语义级深度分析，交叉验证降低误报。输出五维度评分和可直接应用的修复代码。",
+    "hero.tryBtn":"🚀 在线试用","hero.cliBtn":"📋 复制 CLI 命令",
+    "hero.statRules":"内置规则","hero.statDims":"维度评分","hero.statMcp":"MCP 工具","hero.statLangs":"语言覆盖",
+    "features.title":"为什么选择双引擎","features.desc":"单一规则引擎只能发现已知模式，单一 LLM 容易漏报。双引擎交叉验证兼顾确定性与深度。",
+    "features.f1t":"规则引擎 — 确定性扫描","features.f1d":"22 条跨语言规则覆盖安全漏洞、性能反模式、AI 幻觉模式。毫秒级返回，零 API 成本，离线可跑。",
+    "features.f2t":"LLM 语义分析 — 深度理解","features.f2d":"接收规则预检结果后做语义级评审：逻辑错误、架构缺陷、业务边界。确认或否定规则命中，消除误报。",
+    "features.f3t":"交叉验证 — 三级溯源","features.f3d":"每个 issue 标注来源：rule（仅规则）、llm（仅 LLM）、confirmed（双引擎一致）。置信度自动提升。",
+    "features.f4t":"五维度评分 — 量化质量","features.f4d":"正确性、安全性、性能、可维护性、最佳实践各 0–100 分。综合分按安全 30% + 正确性 25% 加权。",
+    "features.f5t":"修复代码 — 可直接应用","features.f5d":"每个 issue 附带 fix_code 片段，复制即可替换。规则引擎为 8 类关键规则自动生成，LLM 覆盖复杂场景。",
+    "features.f6t":"MCP + REST — 双协议","features.f6d":"7 个 MCP 工具供 Agent 调用，REST API 供集成。远程 /mcp 端点与 /v1/* 共存于同一服务器。",
+    "demo.title":"在线试用","demo.desc":"粘贴代码或 diff，点击评审。也可用 CLI 一键评审 git 改动：<code>python cli.py --commit HEAD~1</code>",
+    "demo.tabCode":"代码评审","demo.tabDiff":"Diff 评审","demo.tabFiles":"多文件","demo.tabFix":"自动修复",
+    "demo.phLang":"语言 (python / java / js / go)","demo.phCtx":"任务上下文（可选）",
+    "demo.lblCode":"源代码","demo.lblFiles":"多文件（用 <code># == 文件名 ==</code> 分隔）",
+    "demo.hint":"💡 <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 直接评审 git 改动，无需手动粘贴。",
+    "demo.runBtn":"▶ 开始评审","demo.emptyResult":"点击「开始评审」查看结果","demo.fixTitle":"🔧 修复方案",
+    "api.title":"API 一览","api.desc":"REST API 与 MCP 工具共存于同一服务器，部署后即可使用。",
+    "api.r1":"评审源代码，返回五维度评分 + 问题列表 + 修复代码","api.r2":"评审 Unified Diff，返回变更元数据 + 评审报告",
+    "api.r3":"多文件批量评审，per-file 扫描 + 跨文件架构分析","api.r4":"为问题代码生成完整修复版本（fixed_code + 变更说明）",
+    "api.r5":"列出全部 22 条规则引擎规则","api.r6":"查看单条规则详情与修复指引",
+    "api.r7":"远程 MCP streamable HTTP 端点（7 个工具）","api.r8":"健康检查，返回部署 commit",
+    "footer.features":"功能","footer.demo":"试用",
+    "dim.correctness":"正确性","dim.security":"安全性","dim.performance":"性能","dim.maintainability":"可维护性","dim.best_practice":"最佳实践",
+    "eng.rule":"⚡ 规则命中","eng.llm":"🧠 LLM 发现","eng.conf":"✅ 交叉确认","eng.total":"🔍 规则执行",
+    "issue.noIssues":"✅ 未发现问题","issue.category":"类别：","issue.suggestion":"建议：",
+    "issue.fixCode":"修复代码：","report.dims":"📊 分维度评分","report.issues":"🚨 问题","report.strengths":"👍 优点","report.improvements":"🚀 改进方向",
+    "report.model":"模型：","report.issuesCount":"个问题","report.grade":"级",
+    "toast.copied":"已复制 ✅","toast.copyFail":"复制失败","toast.cliCopied":"已复制 CLI 命令 ✅","toast.applied":"已应用到输入框",
+    "demo.reviewing":"⏳ 双引擎评审中（3-10 秒）...","demo.reviewingShort":"⏳ 评审中...","demo.done":"✅ 评审完成","demo.pasteFirst":"请先粘贴内容",
+    "demo.fixGenerated":"✅ 修复方案已生成","demo.fixDetected":"个规则问题","demo.copyFix":"📋 复制修复代码",
+    "demo.applied":"已应用修复代码到输入框","demo.noFiles":"未解析到文件",
+  }
+};
+let LANG='en';
+function t(key){return(I18N[LANG]||I18N.en)[key]||key}
+function applyLang(lang){
+  LANG=lang;
+  document.documentElement.lang=lang==='zh'?'zh-CN':'en';
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.innerHTML=t(el.dataset.i18n)});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t(el.dataset.i18nPh)});
+  document.getElementById('lang-btn').textContent=lang==='en'?'中文':'EN';
+  try{localStorage.setItem('cr-lang',lang)}catch(e){}
+}
+function toggleLang(){applyLang(LANG==='en'?'zh':'en')}
+
 /* ═══ Theme ═══ */
 function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
@@ -371,7 +461,7 @@ function toggleTheme(){
 
 /* ═══ CLI copy ═══ */
 function copyCli(){
-  navigator.clipboard.writeText('python cli.py --commit HEAD~1 --remote').then(()=>toast('已复制 CLI 命令 ✅')).catch(()=>toast('复制失败'))
+  navigator.clipboard.writeText('python cli.py --commit HEAD~1 --remote').then(()=>toast(t('toast.cliCopied'))).catch(()=>toast(t('toast.copyFail')))
 }
 let toastT=null;
 function toast(m){const e=document.getElementById('toast');e.textContent=m;e.style.opacity='1';clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity='0',1800)}
@@ -389,15 +479,15 @@ const singleBlock=document.getElementById('single-block');
 
 function switchTab(tab){
   mode=tab;
-  ['code','diff','files','fix'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===tab));
+  ['code','diff','files','fix'].forEach(tt=>document.getElementById('tab-'+tt).classList.toggle('active',tt===tab));
   const isFiles=tab==='files';
   filesBlock.style.display=isFiles?'block':'none';
   singleBlock.style.display=(tab==='fix')?'block':(isFiles?'none':'block');
   fixCard.style.display='none';
   const label=document.getElementById('code-label');
-  if(tab==='diff'){label.textContent='Unified Diff';codeEl.placeholder='粘贴 git diff 输出...'}
-  else if(tab==='fix'){label.textContent='待修复代码';codeEl.placeholder='粘贴有问题的代码...'}
-  else{label.textContent='源代码';codeEl.placeholder='粘贴要评审的代码...'}
+  if(tab==='diff'){label.textContent='Unified Diff';codeEl.placeholder=LANG==='zh'?'粘贴 git diff 输出...':'Paste git diff output...'}
+  else if(tab==='fix'){label.innerHTML=t('demo.lblCode');codeEl.placeholder=LANG==='zh'?'粘贴有问题的代码...':'Paste problematic code...'}
+  else{label.innerHTML=t('demo.lblCode');codeEl.placeholder=LANG==='zh'?'粘贴要评审的代码...':'Paste code to review...'}
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
@@ -416,7 +506,7 @@ function hl(code,lang){
 
 function renderDims(dim){
   if(!dim)return'';
-  const labels={correctness:'正确性',security:'安全性',performance:'性能',maintainability:'可维护性',best_practice:'最佳实践'};
+  const labels={correctness:t('dim.correctness'),security:t('dim.security'),performance:t('dim.performance'),maintainability:t('dim.maintainability'),best_practice:t('dim.best_practice')};
   return'<div class="dim-grid">'+Object.keys(labels).map(k=>{
     const v=dim[k]??0;const c=v>=85?'#22c55e':v>=70?'#3b82f6':v>=50?'#f59e0b':'#ef4444';
     return`<div class="dim"><div class="dim-top"><span>${labels[k]}</span><span style="color:${c}">${v}</span></div><div class="dim-bar"><i style="width:${v}%;background:${c}"></i></div></div>`;
@@ -426,22 +516,22 @@ function renderDims(dim){
 function renderEng(info){
   if(!info||!info.engines)return'';
   return`<div class="eng-grid">
-    <div class="eng rule"><div class="n">${info.rule_count||0}</div><div class="l">⚡ 规则命中</div></div>
-    <div class="eng llm"><div class="n">${info.llm_count||0}</div><div class="l">🧠 LLM 发现</div></div>
-    <div class="eng conf"><div class="n">${info.confirmed_count||0}</div><div class="l">✅ 交叉确认</div></div>
-    <div class="eng"><div class="n">${info.total_rules_run||0}</div><div class="l">🔍 规则执行</div></div>
+    <div class="eng rule"><div class="n">${info.rule_count||0}</div><div class="l">${t('eng.rule')}</div></div>
+    <div class="eng llm"><div class="n">${info.llm_count||0}</div><div class="l">${t('eng.llm')}</div></div>
+    <div class="eng conf"><div class="n">${info.confirmed_count||0}</div><div class="l">${t('eng.conf')}</div></div>
+    <div class="eng"><div class="n">${info.total_rules_run||0}</div><div class="l">${t('eng.total')}</div></div>
   </div>`;
 }
 
 function renderIssues(report){
-  if(!report.issues||!report.issues.length)return'<p style="color:var(--text-3)">✅ 未发现问题</p>';
+  if(!report.issues||!report.issues.length)return`<p style="color:var(--text-3)">${t('issue.noIssues')}</p>`;
   return report.issues.map((i,idx)=>{
-    const line=i.line?` · 行${i.line}`:'';
+    const line=i.line?` · ${i.line}`:'';
     const src=i.source?`<span class="badge b-${i.source}">${i.source}</span>`:'';
     const rid=i.rule_id?`<span class="tag">${esc(i.rule_id)}</span>`:'';
     const conf=(i.confidence!=null)?`<span class="tag">${(i.confidence*100|0)}%</span>`:'';
-    const fix=i.fix_code?`<div class="fix-block"><p style="color:var(--text-3);font-size:.78rem;margin-bottom:4px">修复代码：</p><pre class="code"><code>${hl(i.fix_code)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(i.fix_code)}">📋 复制</button><button class="copy-btn apply" onclick="applyFix(${idx})">⚡ 应用</button></div>`:'';
-    return`<div class="issue" onclick="this.classList.toggle('open')"><div class="issue-top"><span class="badge b-${i.severity}">${i.severity}</span>${src}${esc(i.title)}${line}${rid}${conf}</div><div class="issue-body"><p><b>类别：</b>${esc(i.category)}</p><p>${esc(i.description)}</p><p style="color:var(--text-3)"><b>建议：</b>${esc(i.suggestion)}</p>${fix}</div></div>`;
+    const fix=i.fix_code?`<div class="fix-block"><p style="color:var(--text-3);font-size:.78rem;margin-bottom:4px">${t('issue.fixCode')}</p><pre class="code"><code>${hl(i.fix_code)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(i.fix_code)}">📋 ${LANG==='zh'?'复制':'Copy'}</button><button class="copy-btn apply" onclick="applyFix(${idx})">⚡ ${LANG==='zh'?'应用':'Apply'}</button></div>`:'';
+    return`<div class="issue" onclick="this.classList.toggle('open')"><div class="issue-top"><span class="badge b-${i.severity}">${i.severity}</span>${src}${esc(i.title)}${line}${rid}${conf}</div><div class="issue-body"><p><b>${t('issue.category')}</b>${esc(i.category)}</p><p>${esc(i.description)}</p><p style="color:var(--text-3)"><b>${t('issue.suggestion')}</b>${esc(i.suggestion)}</p>${fix}</div></div>`;
   }).join('');
 }
 
@@ -449,14 +539,14 @@ function renderReport(r,model){
   const sc=gradeColor(r.grade);
   return`<div class="report-head">
     <div class="score-ring" style="background:conic-gradient(${sc} ${r.score*3.6}deg,var(--border) 0)">
-      <span class="val" style="color:${sc}">${r.score}</span><span class="grade">${r.grade}级</span>
+      <span class="val" style="color:${sc}">${r.score}</span><span class="grade">${r.grade}${t('report.grade')}</span>
     </div>
-    <div class="report-meta"><h4>${esc(r.summary)}</h4><div class="sub">模型：${esc(model||'')} · ${(r.issues||[]).length} 个问题</div></div>
-  </div>${renderEng(r.engine_info)}<div class="report-section-title">📊 分维度评分</div>${renderDims(r.dimension_scores)}<div class="report-section-title">🚨 问题 (${(r.issues||[]).length})</div>${renderIssues(r)}${(r.strengths&&r.strengths.length)?`<div class="report-section-title">👍 优点</div><ul class="plain">${r.strengths.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>`:''}${(r.improvements&&r.improvements.length)?`<div class="report-section-title">🚀 改进方向</div><ul class="plain">${r.improvements.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>`:''}`;
+    <div class="report-meta"><h4>${esc(r.summary)}</h4><div class="sub">${t('report.model')}${esc(model||'')} · ${(r.issues||[]).length} ${t('report.issuesCount')}</div></div>
+  </div>${renderEng(r.engine_info)}<div class="report-section-title">${t('report.dims')}</div>${renderDims(r.dimension_scores)}<div class="report-section-title">${t('report.issues')} (${(r.issues||[]).length})</div>${renderIssues(r)}${(r.strengths&&r.strengths.length)?`<div class="report-section-title">${t('report.strengths')}</div><ul class="plain">${r.strengths.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>`:''}${(r.improvements&&r.improvements.length)?`<div class="report-section-title">${t('report.improvements')}</div><ul class="plain">${r.improvements.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul>`:''}`;
 }
 
-function copyText(t){navigator.clipboard.writeText(t||'').then(()=>toast('已复制 ✅')).catch(()=>toast('复制失败'))}
-function applyFix(i){codeEl.value=(i.fix_code||'');statusEl.textContent='已应用修复代码到输入框';toast('已应用到输入框')}
+function copyText(t2){navigator.clipboard.writeText(t2||'').then(()=>toast(t('toast.copied'))).catch(()=>toast(t('toast.copyFail')))}
+function applyFix(i){codeEl.value=(i.fix_code||'');statusEl.textContent=t('demo.applied');toast(t('toast.applied'))}
 
 function parseFilesArea(text){
   const blocks=(text||'').split(/^#\s*==(.+?)==\s*$/m);
@@ -471,14 +561,14 @@ async function run(){
   const context=document.getElementById('context').value.trim();
   const pick=mode==='files'?document.getElementById('files-area'):codeEl;
   const content=pick.value.trim();
-  if(!content){statusEl.textContent='请先粘贴内容';return}
+  if(!content){statusEl.textContent=t('demo.pasteFirst');return}
   btn.disabled=true;fixCard.style.display='none';
-  statusEl.textContent='⏳ 双引擎评审中（3-10 秒）...';
-  reportEl.className='';reportEl.innerHTML='<div class="report-empty">⏳ 评审中...</div>';
+  statusEl.textContent=t('demo.reviewing');
+  reportEl.className='';reportEl.innerHTML=`<div class="report-empty">${t('demo.reviewingShort')}</div>`;
   const body={language,context};
   try{
     let endpoint;
-    if(mode==='files'){endpoint='/v1/review_files';body.files=parseFilesArea(content);if(!body.files.length)throw new Error('未解析到文件')}
+    if(mode==='files'){endpoint='/v1/review_files';body.files=parseFilesArea(content);if(!body.files.length)throw new Error(t('demo.noFiles'))}
     else if(mode==='diff'){endpoint='/v1/review_diff';body.diff=content}
     else if(mode==='fix'){endpoint='/v1/suggest_fix';body.code=content}
     else{endpoint='/v1/review';body.code=content}
@@ -488,18 +578,21 @@ async function run(){
     if(mode==='fix'){
       const res=data.result||{};fixCard.style.display='block';
       reportEl.innerHTML=`<p style="color:var(--text-2);font-size:.85rem">${esc(res.explanation||'')}</p>`;
-      fixReportEl.innerHTML=`<p style="color:var(--text-3);font-size:.8rem">检测到 ${res.found_issues||0} 个规则问题</p><pre class="code"><code>${hl(res.fixed_code,language)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(res.fixed_code||'')}">📋 复制修复代码</button>${(res.changes&&res.changes.length)?`<ul class="plain" style="margin-top:8px">${res.changes.map(c=>'<li>'+esc(c)+'</li>').join('')}</ul>`:''}`;
-      statusEl.textContent='✅ 修复方案已生成';return;
+      fixReportEl.innerHTML=`<p style="color:var(--text-3);font-size:.8rem">${res.found_issues||0} ${t('demo.fixDetected')}</p><pre class="code"><code>${hl(res.fixed_code,language)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(res.fixed_code||'')}">${t('demo.copyFix')}</button>${(res.changes&&res.changes.length)?`<ul class="plain" style="margin-top:8px">${res.changes.map(c=>'<li>'+esc(c)+'</li>').join('')}</ul>`:''}`;
+      statusEl.textContent=t('demo.fixGenerated');return;
     }
     const r=data.report||data.overall_report||{};
     let extra='';
-    if(data.files_changed)extra=`<div class="sub">变更: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</div>`;
+    if(data.files_changed)extra=`<div class="sub">${LANG==='zh'?'变更':'Changes'}: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</div>`;
     reportEl.innerHTML=renderReport(r,data.model)+(extra?`<div style="margin-top:12px">${extra}</div>`:'');
-    statusEl.textContent='✅ 评审完成';
+    statusEl.textContent=t('demo.done');
   }catch(e){reportEl.innerHTML=`<div class="report-empty" style="color:var(--danger)">❌ ${esc(e.message)}</div>`;statusEl.textContent=''}
   finally{btn.disabled=false}
 }
 btn.addEventListener('click',run);
+
+/* ═══ Init lang ═══ */
+(function(){try{const l=localStorage.getItem('cr-lang')||'en';applyLang(l)}catch(e){applyLang('en')}})();
 </script>
 </body>
 </html>
