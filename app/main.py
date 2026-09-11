@@ -4,18 +4,24 @@
 Provides:
 - POST /v1/review            dual-engine review of source code
 - POST /v1/review_diff       dual-engine review of a unified diff
+- POST /v1/review_files      multi-file batch review
+- POST /v1/suggest_fix       generate corrected code for known issues
 - GET  /v1/rules             list all built-in rule engine rules
+- GET  /v1/rules/{rule_id}   explain one rule in detail
 - GET  /health               health check returning the deployed commit
 - GET  /.well-known/xagent-verification.json   deployment proof
 - GET  /                     minimal web demo page
+- MCP  /mcp                  remote streamable-HTTP MCP endpoint (same server)
 """
 import logging
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from .config import PROJECT_SLUG, get_settings
+from .mcp_server import mcp
 from .reviewer import (
     ReviewError,
     explain_issue,
@@ -40,12 +46,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
+
+# Remote MCP endpoint (streamable HTTP transport). Created before app so its
+# lifespan can be wired into the FastAPI app; mounted after all REST routes.
+mcp_app = None
+try:
+    mcp_app = mcp.http_app(path="/mcp")
+    logger.info("MCP streamable HTTP endpoint ready at /mcp")
+except Exception:  # noqa: BLE001
+    logger.exception("Failed to build MCP HTTP endpoint")
+
 app = FastAPI(
     title="Code Review Agent",
     description="Dual-engine AI code quality review: rule-based static analysis "
     "+ LLM semantic review with cross-validation.",
-    version="2.0.0",
+    version="2.1.0",
+    lifespan=mcp_app.lifespan if mcp_app is not None else None,
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 @app.get("/health", response_model=HealthResponse, tags=["meta"])
@@ -185,6 +210,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         status_code=exc.status_code,
         content={"ok": False, "error": exc.detail},
     )
+
+
+# Mount MCP catch-all AFTER all REST routes so /health, /v1/* etc. win.
+if mcp_app is not None:
+    app.mount("/", mcp_app)
 
 
 def main() -> None:

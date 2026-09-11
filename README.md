@@ -138,8 +138,10 @@ curl -X POST http://127.0.0.1:8000/v1/review_diff \
 
 ## MCP usage
 
+### 本地 stdio（Claude Code / Codex / Cursor）
+
 ```bash
-python -m app.mcp_server          # stdio，供 Claude Code / Codex / Cursor 调用
+python -m app.mcp_server          # stdio transport
 ```
 
 注册到客户端配置：
@@ -155,17 +157,43 @@ python -m app.mcp_server          # stdio，供 Claude Code / Codex / Cursor 调
 }
 ```
 
+### 远程 streamable HTTP（同一部署，无需本地 Python）
+
+部署后访问 `https://<your-host>/mcp`，在 MCP 客户端中配置：
+
+```json
+{
+  "mcpServers": {
+    "code-review-agent": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-client", "https://<your-host>/mcp"]
+    }
+  }
+}
+```
+
+> 远程 MCP 端点与 REST API 共用同一个服务器，部署后 `/mcp` 提供 streamable HTTP 协议，`/v1/*` 提供 REST。
+
+### 使用引导（给 Agent）
+
+1. **先免费快筛**：用 `detect_security` / `list_rules` / `explain_issue`（无 LLM 调用，毫秒级返回）
+2. **深度评审**：用 `review_code` / `review_diff` / `review_files`，默认 `detail="brief"`（节省上下文，仅返回标题级 issue）
+3. **需要完整报告时**：`detail="full"` 返回每个 issue 的完整 description / suggestion / fix_code
+4. **修复**：用 `suggest_fix` 获取可直接替换的 `fixed_code`
+
 ### MCP 工具
 
-| 工具 | 说明 | 是否调用 LLM |
-| --- | --- | --- |
-| `review_code(code, language, context)` | 评审源代码（双引擎） | ✅ |
-| `review_diff(diff, language, context)` | 评审 PR 变更 | ✅ |
-| `review_files(files_json, context)` | 多文件批量评审 | ✅ |
-| `detect_security(code, language)` | 仅规则引擎安全扫描，即时返回 | ❌ |
-| `explain_issue(rule_id)` | 解释某条规则（定义/严重级别/修复指引） | ❌ |
-| `suggest_fix(code, language, context)` | 返回修复后的完整代码（fixed_code + 变更说明） | ✅ |
-| `list_rules()` | 列出全部规则 | ❌ |
+| 工具 | 参数 | LLM | 说明 |
+| --- | --- | --- | --- |
+| `review_code` | `code, language?, context?, detail?` | ✅ | 评审源代码（`detail: "brief"\|"full"`） |
+| `review_diff` | `diff, language?, context?, detail?` | ✅ | 评审 Unified Diff |
+| `review_files` | `files: [{filename, content, language?}], context?, detail?` | ✅ | 多文件批量评审（结构化参数，非 JSON 字符串） |
+| `detect_security` | `code, language?` | ❌ | 仅规则引擎安全扫描，即时返回 |
+| `explain_issue` | `rule_id` | ❌ | 解释某条规则（定义/严重级别/修复指引） |
+| `suggest_fix` | `code, language?, context?` | ✅ | 返回修复后的完整代码（fixed_code + 变更说明） |
+| `list_rules` | — | ❌ | 列出全部规则 |
+
+> `review_files` 的 `files` 参数是**结构化数组**，每个元素 `{filename, content, language?}`，Agent 无需手工拼 JSON 字符串。
 
 ## 规则引擎
 

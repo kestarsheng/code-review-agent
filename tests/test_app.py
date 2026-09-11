@@ -299,6 +299,109 @@ def test_suggest_fix_clean_code(monkeypatch):
     assert result["fixed_code"] == 'x = 1\nprint("hello")'
 
 
+# ── Brief report (MCP context saver) ─────────────────────────
+
+def test_build_brief_report_truncates():
+    from app.reviewer import _build_brief_report
+
+    report = {
+        "summary": "s", "score": 70, "grade": "C",
+        "dimension_scores": {"security": 50},
+        "engine_info": {"rule_count": 2},
+        "strengths": ["a"], "improvements": ["b"],
+        "issues": [
+            {"severity": "major", "category": "security", "line": i, "title": "t",
+             "description": "d" * 10, "suggestion": "s", "fix_code": "f",
+             "source": "rule", "rule_id": "PY-S001", "confidence": 0.9}
+            for i in range(8)
+        ],
+    }
+    brief = _build_brief_report(report, max_issues=5)
+    assert brief["issue_count"] == 8
+    assert brief["truncated"] is True
+    assert len(brief["issues"]) == 5
+    assert "description" not in brief["issues"][0]
+    assert "fix_code" not in brief["issues"][0]
+    assert brief["issues"][0]["rule_id"] == "PY-S001"
+    assert brief["score"] == 70
+    assert brief["strengths"] == ["a"]
+
+
+def test_build_brief_report_full_when_small():
+    from app.reviewer import _build_brief_report
+
+    report = {
+        "summary": "s", "score": 95, "grade": "A",
+        "dimension_scores": {}, "engine_info": {},
+        "issues": [{"severity": "info", "category": "maintainability",
+                    "line": 1, "title": "t", "source": "llm"}],
+    }
+    brief = _build_brief_report(report, max_issues=5)
+    assert brief["truncated"] is False
+    assert len(brief["issues"]) == 1
+
+
+def test_mcp_review_code_detail_brief(monkeypatch):
+    import json
+    from app.mcp_server import review_code_tool
+
+    _mock_llm_data(
+        monkeypatch,
+        {"summary": "s", "dimension_scores": None, "strengths": [], "improvements": []},
+        issues=[
+            {"severity": "major", "category": "security", "line": i * 10 + 1,
+             "title": "t", "description": "d" * 20, "suggestion": "fix"}
+            for i in range(6)
+        ],
+    )
+    raw = review_code_tool("x = 1\nprint(x)", "python", "")
+    data = json.loads(raw)
+    assert data["ok"] is True
+    assert data["report"]["detail"] == "brief"
+    assert data["report"]["truncated"] is True
+    assert len(data["report"]["issues"]) == 5
+
+
+def test_mcp_review_code_detail_full(monkeypatch):
+    import json
+    from app.mcp_server import review_code_tool
+
+    _mock_llm_data(
+        monkeypatch,
+        {"summary": "s", "dimension_scores": None, "strengths": [], "improvements": []},
+        issues=[
+            {"severity": "major", "category": "security", "line": 1,
+             "title": "t", "description": "detailed", "suggestion": "fix",
+             "fix_code": "fixed"}
+        ],
+    )
+    raw = review_code_tool("x = 1\nprint(x)", "python", "", detail="full")
+    data = json.loads(raw)
+    assert data["report"]["detail"] == "full"
+    assert len(data["report"]["issues"]) == 1
+    assert "description" in data["report"]["issues"][0]
+
+
+def test_mcp_review_files_structured_param(monkeypatch):
+    import json
+    from app.mcp_server import review_files_tool
+
+    _mock_llm_data(
+        monkeypatch,
+        {"summary": "s", "dimension_scores": None, "strengths": [], "improvements": []},
+        issues=[],
+    )
+    files = [
+        {"filename": "a.py", "content": 'x = "sk-1234567890"', "language": "python"},
+        {"filename": "b.py", "content": "print(1)", "language": "python"},
+    ]
+    raw = review_files_tool(files, "proj")
+    data = json.loads(raw)
+    assert data["ok"] is True
+    assert data["result"]["file_count"] == 2
+    assert data["result"]["detail"] == "brief"
+
+
 # ── Diff parser ─────────────────────────────────────────────────
 
 def test_parse_simple_diff():

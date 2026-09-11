@@ -472,3 +472,40 @@ def explain_issue(rule_id: str) -> dict[str, Any]:
                 "ok": True,
             }
     return {"ok": False, "error": f"未找到规则 {rule_id}", "rule_id": rule_id}
+
+
+_BRIEF_ISSUE_KEYS = ("severity", "category", "line", "title", "source", "rule_id", "confidence")
+
+
+def _build_brief_report(
+    report: dict[str, Any],
+    max_issues: int = 5,
+) -> dict[str, Any]:
+    """Build a compact version of a review report for MCP budget usage.
+
+    Keeps the headline (summary, scores, engine stats) plus a trimmed issue
+    list without verbose description/suggestion/fix_code fields, so agents
+    can decide whether to dig deeper without burning context tokens.
+    """
+    issues = report.get("issues", [])
+    kept = issues[:max_issues]
+    brief = {
+        "summary": report.get("summary", ""),
+        "score": report.get("score", 0),
+        "grade": report.get("grade", "C"),
+        "dimension_scores": report.get("dimension_scores", {}),
+        "issue_count": len(issues),
+        "truncated": len(issues) > max_issues,
+        "issues": [
+            {k: i.get(k) for k in _BRIEF_ISSUE_KEYS if k in i}
+            for i in kept
+        ],
+        "engine_info": report.get("engine_info", {}),
+    }
+    strengths = report.get("strengths", [])
+    improvements = report.get("improvements", [])
+    if strengths:
+        brief["strengths"] = strengths[:3]
+    if improvements:
+        brief["improvements"] = improvements[:3]
+    return brief
