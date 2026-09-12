@@ -2,6 +2,7 @@
 """FastAPI application entry point.
 
 Provides:
+- GET  /v1                    API base URL endpoint directory
 - POST /v1/review            dual-engine review of source code
 - POST /v1/review_diff       dual-engine review of a unified diff
 - POST /v1/review_files      multi-file batch review
@@ -87,6 +88,26 @@ def verification() -> VerificationResponse:
     return VerificationResponse(
         schemaVersion=1, slug=PROJECT_SLUG, commit=settings.commit
     )
+
+
+@app.get("/v1", tags=["meta"])
+def api_index() -> dict:
+    """API base URL: return the endpoint directory so /v1 is never a 404."""
+    return {
+        "service": "Code Review Agent",
+        "version": "2.1.0",
+        "endpoints": {
+            "POST /v1/review": "review source code (dual-engine)",
+            "POST /v1/review_diff": "review a unified diff",
+            "POST /v1/review_files": "multi-file batch review",
+            "POST /v1/suggest_fix": "generate corrected code",
+            "GET /v1/rules": "list built-in rule engine rules",
+            "GET /v1/rules/{rule_id}": "explain one rule",
+            "GET /health": "health check (deployed commit)",
+            "GET /.well-known/xagent-verification.json": "deployment proof",
+            "GET /mcp": "remote MCP endpoint",
+        },
+    }
 
 
 @app.post("/v1/review", response_model=ReviewResponse, tags=["review"])
