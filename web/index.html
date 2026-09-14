@@ -171,16 +171,39 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
 .footer-links a:hover{color:var(--text)}
 .footer-copy{font-size:.78rem;color:var(--text-3)}
 
+/* ═══ Icons ═══ */
+.icon{width:1em;height:1em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.125em}
+
 /* ═══ Toast ═══ */
 #toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);padding:8px 18px;border-radius:99px;font-size:.82rem;z-index:200;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .3s}
 </style>
 </head>
 <body>
 
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m4.93-15.07 1.41 1.41M5.34 18.66l1.41 1.41M2 12h2M20 12h2m-2.34-5.66-1.41 1.41M17.66 17.66l1.41 1.41"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-1.83.01-2.54a1.88 1.88 0 0 0-2.61 0c-.96.96-1.96 1.06-2.41.54"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 5.72-4.78 10-10 10Z"/><path d="M9 12h.01"/></symbol>
+<symbol id="i-clipboard" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+<symbol id="i-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M20 15h2M9 2v2M9 20v2M2 9h2M20 9h2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+<symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol>
+<symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-thumb" viewBox="0 0 24 24"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></symbol>
+<symbol id="i-loader" viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+</svg>
+
 <!-- ═══ Nav ═══ -->
 <nav>
   <div class="nav-inner">
-    <a href="#" class="nav-logo"><span class="dot">🔍</span> Code Review Agent</a>
+    <a href="#" class="nav-logo"><span class="dot"><svg class="icon"><use href="#i-search"/></svg></span> Code Review Agent</a>
     <div class="nav-links">
       <a href="#features" data-i18n="nav.features">Features</a>
       <a href="#demo" data-i18n="nav.demo">Try Online</a>
@@ -189,7 +212,7 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
     </div>
     <div class="nav-actions">
       <button class="lang-toggle" onclick="toggleLang()" id="lang-btn">中文</button>
-      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀️</button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg class="icon"><use href="#i-sun"/></svg></button>
       <button class="nav-cta" onclick="document.getElementById('demo').scrollIntoView()" data-i18n="nav.cta">Try Now</button>
     </div>
   </div>
@@ -203,8 +226,8 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
     <h1 data-i18n-html="hero.title">Make every line of code<br>go through <span class="grad">dual-engine review</span></h1>
     <p data-i18n="hero.desc">Rule engine performs deterministic static scan, LLM does semantic deep analysis, cross-validation reduces false positives. Outputs 5-dimension scores and directly applicable fix code.</p>
     <div class="hero-actions">
-      <button class="btn-primary" onclick="document.getElementById('demo').scrollIntoView()" data-i18n="hero.tryBtn">🚀 Try Online</button>
-      <button class="btn-ghost" onclick="copyCli()" data-i18n="hero.cliBtn">📋 Copy CLI Command</button>
+      <button class="btn-primary" onclick="document.getElementById('demo').scrollIntoView()" data-i18n="hero.tryBtn"><svg class="icon"><use href="#i-rocket"/></svg> Try Online</button>
+      <button class="btn-ghost" onclick="copyCli()" data-i18n="hero.cliBtn"><svg class="icon"><use href="#i-clipboard"/></svg> Copy CLI Command</button>
     </div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="num">26</div><div class="lbl" data-i18n="hero.statRules">Built-in Rules</div></div>
@@ -224,32 +247,32 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
     </div>
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
+        <div class="feature-icon"><svg class="icon"><use href="#i-zap"/></svg></div>
         <h3 data-i18n="features.f1t">Rule Engine — Deterministic Scan</h3>
         <p data-i18n="features.f1d">22 cross-language rules covering security vulnerabilities, performance anti-patterns, AI hallucination patterns. Millisecond response, zero API cost, offline capable.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🧠</div>
+        <div class="feature-icon"><svg class="icon"><use href="#i-cpu"/></svg></div>
         <h3 data-i18n="features.f2t">LLM Semantic Analysis — Deep Understanding</h3>
         <p data-i18n="features.f2d">Receives rule pre-scan results then does semantic review: logic errors, architecture flaws, business boundaries. Confirms or denies rule hits, eliminating false positives.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">✅</div>
+        <div class="feature-icon"><svg class="icon"><use href="#i-check"/></svg></div>
         <h3 data-i18n="features.f3t">Cross-Validation — 3-Level Traceability</h3>
         <p data-i18n="features.f3d">Each issue is tagged with source: rule (engine only), llm (LLM only), confirmed (both agree). Confidence auto-boosted.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📊</div>
+        <div class="feature-icon"><svg class="icon"><use href="#i-chart"/></svg></div>
         <h3 data-i18n="features.f4t">5-Dimension Scoring — Quantified Quality</h3>
         <p data-i18n="features.f4d">Correctness, Security, Performance, Maintainability, Best Practice — each 0–100. Composite score weighted: security 30% + correctness 25%.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔧</div>
+        <div class="feature-icon"><svg class="icon"><use href="#i-wrench"/></svg></div>
         <h3 data-i18n="features.f5t">Fix Code — Directly Applicable</h3>
         <p data-i18n="features.f5d">Each issue includes a fix_code snippet, copy-paste ready. Rule engine auto-generates for 8 key rule types, LLM covers complex scenarios.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔌</div>
+        <div class="feature-icon"><svg class="icon"><use href="#i-plug"/></svg></div>
         <h3 data-i18n="features.f6t">MCP + REST — Dual Protocol</h3>
         <p data-i18n="features.f6d">7 MCP tools for Agent calls, REST API for integration. Remote /mcp endpoint and /v1/* coexist on the same server.</p>
       </div>
@@ -288,7 +311,7 @@ def save_profile(user):
     db.commit()</textarea>
         </div>
         <div id="files-block" style="display:none;">
-          <div class="demo-hint" data-i18n="demo.hint">💡 <b>CLI recommended:</b><code>python cli.py --staged</code> or <code>python cli.py --commit HEAD~1</code> to review git changes directly, no pasting needed.</div>
+          <div class="demo-hint" data-i18n="demo.hint"><svg class="icon"><use href="#i-bulb"/></svg> <b>CLI recommended:</b><code>python cli.py --staged</code> or <code>python cli.py --commit HEAD~1</code> to review git changes directly, no pasting needed.</div>
           <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px" data-i18n="demo.lblFiles">Multi-file (separate with <code># == filename ==</code>)</label>
           <textarea id="files-area" spellcheck="false"># == utils.py ==
 import os
@@ -306,7 +329,7 @@ def handler(event, context):
     result = eval(event["body"])
     return {"statusCode": 200, "body": result}</textarea>
         </div>
-        <button class="btn-run" id="btn" data-i18n="demo.runBtn">▶ Start Review</button>
+        <button class="btn-run" id="btn" data-i18n="demo.runBtn"><svg class="icon"><use href="#i-play"/></svg> Start Review</button>
         <div class="demo-status" id="status"></div>
       </div>
     </div>
@@ -314,7 +337,7 @@ def handler(event, context):
       <div class="report-empty" id="report" data-i18n="demo.emptyResult">Click "Start Review" to see results</div>
     </div>
     <div class="report-card" id="fix-card" style="display:none;">
-      <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px" data-i18n="demo.fixTitle">🔧 Fix Solution</h3>
+      <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px" data-i18n="demo.fixTitle"><svg class="icon"><use href="#i-wrench"/></svg> Fix Solution</h3>
       <div id="fix-report"></div>
     </div>
   </div>
@@ -344,7 +367,7 @@ def handler(event, context):
 <footer>
   <div class="footer-inner">
     <div class="footer-left">
-      <span class="dot">🔍</span>
+      <span class="dot"><svg class="icon"><use href="#i-search"/></svg></span>
       <span>Code Review Agent</span>
     </div>
     <div class="footer-links">
@@ -369,7 +392,7 @@ const I18N={
     "hero.badge":"Dual-engine review · Out of the box · Multi-language",
     "hero.title":'Make every line of code<br>go through <span class="grad">dual-engine review</span>',
     "hero.desc":"Rule engine performs deterministic static scan, LLM does semantic deep analysis, cross-validation reduces false positives. Outputs 5-dimension scores and directly applicable fix code.",
-    "hero.tryBtn":"🚀 Try Online","hero.cliBtn":"📋 Copy CLI Command",
+    "hero.tryBtn":"<svg class='icon'><use href='#i-rocket'/></svg> Try Online","hero.cliBtn":"<svg class='icon'><use href='#i-clipboard'/></svg> Copy CLI Command",
     "hero.statRules":"Built-in Rules","hero.statDims":"Dimension Scores","hero.statMcp":"MCP Tools","hero.statLangs":"Languages",
     "features.title":"Why Dual-Engine","features.desc":"A single rule engine only finds known patterns; a single LLM may miss issues. Dual-engine cross-validation balances determinism and depth.",
     "features.f1t":"Rule Engine — Deterministic Scan","features.f1d":"22 cross-language rules covering security vulnerabilities, performance anti-patterns, AI hallucination patterns. Millisecond response, zero API cost, offline capable.",
@@ -382,8 +405,8 @@ const I18N={
     "demo.tabCode":"Code Review","demo.tabDiff":"Diff Review","demo.tabFiles":"Multi-File","demo.tabFix":"Auto Fix",
     "demo.phLang":"Language (python / java / js / go)","demo.phCtx":"Task context (optional)",
     "demo.lblCode":"Source Code","demo.lblFiles":"Multi-file (separate with <code># == filename ==</code>)",
-    "demo.hint":"💡 <b>CLI recommended:</b><code>python cli.py --staged</code> or <code>python cli.py --commit HEAD~1</code> to review git changes directly, no pasting needed.",
-    "demo.runBtn":"▶ Start Review","demo.emptyResult":'Click "Start Review" to see results',"demo.fixTitle":"🔧 Fix Solution",
+    "demo.hint":"<svg class='icon'><use href='#i-bulb'/></svg> <b>CLI recommended:</b><code>python cli.py --staged</code> or <code>python cli.py --commit HEAD~1</code> to review git changes directly, no pasting needed.",
+    "demo.runBtn":"<svg class='icon'><use href='#i-play'/></svg> Start Review","demo.emptyResult":'Click "Start Review" to see results',"demo.fixTitle":"<svg class='icon'><use href='#i-wrench'/></svg> Fix Solution",
     "api.title":"API Overview","api.desc":"REST API and MCP tools coexist on the same server, ready to use after deployment.",
     "api.r1":"Review source code, return 5-dimension scores + issues + fix code","api.r2":"Review Unified Diff, return change metadata + review report",
     "api.r3":"Multi-file batch review, per-file scan + cross-file analysis","api.r4":"Generate complete fixed version (fixed_code + change notes)",
@@ -391,13 +414,13 @@ const I18N={
     "api.r7":"Remote MCP streamable HTTP endpoint (7 tools)","api.r8":"Health check, returns deployment commit",
     "footer.features":"Features","footer.demo":"Try",
     "dim.correctness":"Correctness","dim.security":"Security","dim.performance":"Performance","dim.maintainability":"Maintainability","dim.best_practice":"Best Practice",
-    "eng.rule":"⚡ Rule Hits","eng.llm":"🧠 LLM Found","eng.conf":"✅ Cross-Confirmed","eng.total":"🔍 Rules Run",
-    "issue.noIssues":"✅ No issues found","issue.category":"Category:","issue.suggestion":"Suggestion:",
-    "issue.fixCode":"Fix code:","report.dims":"📊 Dimension Scores","report.issues":"🚨 Issues","report.strengths":"👍 Strengths","report.improvements":"🚀 Improvements",
+    "eng.rule":"<svg class='icon'><use href='#i-zap'/></svg> Rule Hits","eng.llm":"<svg class='icon'><use href='#i-cpu'/></svg> LLM Found","eng.conf":"<svg class='icon'><use href='#i-check'/></svg> Cross-Confirmed","eng.total":"<svg class='icon'><use href='#i-search'/></svg> Rules Run",
+    "issue.noIssues":"<svg class='icon'><use href='#i-check'/></svg> No issues found","issue.category":"Category:","issue.suggestion":"Suggestion:",
+    "issue.fixCode":"Fix code:","report.dims":"<svg class='icon'><use href='#i-chart'/></svg> Dimension Scores","report.issues":"<svg class='icon'><use href='#i-alert'/></svg> Issues","report.strengths":"<svg class='icon'><use href='#i-thumb'/></svg> Strengths","report.improvements":"<svg class='icon'><use href='#i-rocket'/></svg> Improvements",
     "report.model":"Model:","report.issuesCount":"issues","report.grade":"grade",
-    "toast.copied":"Copied ✅","toast.copyFail":"Copy failed","toast.cliCopied":"CLI command copied ✅","toast.applied":"Applied to input box",
-    "demo.reviewing":"⏳ Dual-engine reviewing (3-10s)...","demo.reviewingShort":"⏳ Reviewing...","demo.done":"✅ Review complete","demo.pasteFirst":"Please paste content first",
-    "demo.fixGenerated":"✅ Fix solution generated","demo.fixDetected":"rule issues detected","demo.copyFix":"📋 Copy fix code",
+    "toast.copied":"Copied <svg class='icon'><use href='#i-check'/></svg>","toast.copyFail":"Copy failed","toast.cliCopied":"CLI command copied <svg class='icon'><use href='#i-check'/></svg>","toast.applied":"Applied to input box",
+    "demo.reviewing":"<svg class='icon'><use href='#i-loader'/></svg> Dual-engine reviewing (3-10s)...","demo.reviewingShort":"<svg class='icon'><use href='#i-loader'/></svg> Reviewing...","demo.done":"<svg class='icon'><use href='#i-check'/></svg> Review complete","demo.pasteFirst":"Please paste content first",
+    "demo.fixGenerated":"<svg class='icon'><use href='#i-check'/></svg> Fix solution generated","demo.fixDetected":"rule issues detected","demo.copyFix":"<svg class='icon'><use href='#i-clipboard'/></svg> Copy fix code",
     "demo.applied":"Fix code applied to input box","demo.noFiles":"No files parsed",
   },
   zh:{
@@ -405,7 +428,7 @@ const I18N={
     "hero.badge":"双引擎评审 · 开箱即用 · 多语言支持",
     "hero.title":'让每一行代码<br>都经过<span class="grad"> 双引擎评审</span>',
     "hero.desc":"规则引擎做确定性静态扫描，LLM 做语义级深度分析，交叉验证降低误报。输出五维度评分和可直接应用的修复代码。",
-    "hero.tryBtn":"🚀 在线试用","hero.cliBtn":"📋 复制 CLI 命令",
+    "hero.tryBtn":"<svg class='icon'><use href='#i-rocket'/></svg> 在线试用","hero.cliBtn":"<svg class='icon'><use href='#i-clipboard'/></svg> 复制 CLI 命令",
     "hero.statRules":"内置规则","hero.statDims":"维度评分","hero.statMcp":"MCP 工具","hero.statLangs":"语言覆盖",
     "features.title":"为什么选择双引擎","features.desc":"单一规则引擎只能发现已知模式，单一 LLM 容易漏报。双引擎交叉验证兼顾确定性与深度。",
     "features.f1t":"规则引擎 — 确定性扫描","features.f1d":"26 条跨语言规则覆盖安全漏洞、性能反模式、AI 幻觉模式。毫秒级返回，零 API 成本，离线可跑。",
@@ -418,8 +441,8 @@ const I18N={
     "demo.tabCode":"代码评审","demo.tabDiff":"Diff 评审","demo.tabFiles":"多文件","demo.tabFix":"自动修复",
     "demo.phLang":"语言 (python / java / js / go)","demo.phCtx":"任务上下文（可选）",
     "demo.lblCode":"源代码","demo.lblFiles":"多文件（用 <code># == 文件名 ==</code> 分隔）",
-    "demo.hint":"💡 <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 直接评审 git 改动，无需手动粘贴。",
-    "demo.runBtn":"▶ 开始评审","demo.emptyResult":"点击「开始评审」查看结果","demo.fixTitle":"🔧 修复方案",
+    "demo.hint":"<svg class='icon'><use href='#i-bulb'/></svg> <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 直接评审 git 改动，无需手动粘贴。",
+    "demo.runBtn":"<svg class='icon'><use href='#i-play'/></svg> 开始评审","demo.emptyResult":"点击「开始评审」查看结果","demo.fixTitle":"<svg class='icon'><use href='#i-wrench'/></svg> 修复方案",
     "api.title":"API 一览","api.desc":"REST API 与 MCP 工具共存于同一服务器，部署后即可使用。",
     "api.r1":"评审源代码，返回五维度评分 + 问题列表 + 修复代码","api.r2":"评审 Unified Diff，返回变更元数据 + 评审报告",
     "api.r3":"多文件批量评审，per-file 扫描 + 跨文件架构分析","api.r4":"为问题代码生成完整修复版本（fixed_code + 变更说明）",
@@ -427,13 +450,13 @@ const I18N={
     "api.r7":"远程 MCP streamable HTTP 端点（7 个工具）","api.r8":"健康检查，返回部署 commit",
     "footer.features":"功能","footer.demo":"试用",
     "dim.correctness":"正确性","dim.security":"安全性","dim.performance":"性能","dim.maintainability":"可维护性","dim.best_practice":"最佳实践",
-    "eng.rule":"⚡ 规则命中","eng.llm":"🧠 LLM 发现","eng.conf":"✅ 交叉确认","eng.total":"🔍 规则执行",
-    "issue.noIssues":"✅ 未发现问题","issue.category":"类别：","issue.suggestion":"建议：",
-    "issue.fixCode":"修复代码：","report.dims":"📊 分维度评分","report.issues":"🚨 问题","report.strengths":"👍 优点","report.improvements":"🚀 改进方向",
+    "eng.rule":"<svg class='icon'><use href='#i-zap'/></svg> 规则命中","eng.llm":"<svg class='icon'><use href='#i-cpu'/></svg> LLM 发现","eng.conf":"<svg class='icon'><use href='#i-check'/></svg> 交叉确认","eng.total":"<svg class='icon'><use href='#i-search'/></svg> 规则执行",
+    "issue.noIssues":"<svg class='icon'><use href='#i-check'/></svg> 未发现问题","issue.category":"类别：","issue.suggestion":"建议：",
+    "issue.fixCode":"修复代码：","report.dims":"<svg class='icon'><use href='#i-chart'/></svg> 分维度评分","report.issues":"<svg class='icon'><use href='#i-alert'/></svg> 问题","report.strengths":"<svg class='icon'><use href='#i-thumb'/></svg> 优点","report.improvements":"<svg class='icon'><use href='#i-rocket'/></svg> 改进方向",
     "report.model":"模型：","report.issuesCount":"个问题","report.grade":"级",
-    "toast.copied":"已复制 ✅","toast.copyFail":"复制失败","toast.cliCopied":"已复制 CLI 命令 ✅","toast.applied":"已应用到输入框",
-    "demo.reviewing":"⏳ 双引擎评审中（3-10 秒）...","demo.reviewingShort":"⏳ 评审中...","demo.done":"✅ 评审完成","demo.pasteFirst":"请先粘贴内容",
-    "demo.fixGenerated":"✅ 修复方案已生成","demo.fixDetected":"个规则问题","demo.copyFix":"📋 复制修复代码",
+    "toast.copied":"已复制 <svg class='icon'><use href='#i-check'/></svg>","toast.copyFail":"复制失败","toast.cliCopied":"已复制 CLI 命令 <svg class='icon'><use href='#i-check'/></svg>","toast.applied":"已应用到输入框",
+    "demo.reviewing":"<svg class='icon'><use href='#i-loader'/></svg> 双引擎评审中（3-10 秒）...","demo.reviewingShort":"<svg class='icon'><use href='#i-loader'/></svg> 评审中...","demo.done":"<svg class='icon'><use href='#i-check'/></svg> 评审完成","demo.pasteFirst":"请先粘贴内容",
+    "demo.fixGenerated":"<svg class='icon'><use href='#i-check'/></svg> 修复方案已生成","demo.fixDetected":"个规则问题","demo.copyFix":"<svg class='icon'><use href='#i-clipboard'/></svg> 复制修复代码",
     "demo.applied":"已应用修复代码到输入框","demo.noFiles":"未解析到文件",
   }
 };
@@ -454,10 +477,10 @@ function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
   const next=cur==='dark'?'light':'dark';
   document.documentElement.setAttribute('data-theme',next);
-  document.getElementById('theme-btn').textContent=next==='dark'?'☀️':'🌙';
+  document.getElementById('theme-btn').innerHTML=next==='dark'?'<svg class="icon"><use href="#i-sun"/></svg>':'<svg class="icon"><use href="#i-moon"/></svg>';
   try{localStorage.setItem('cr-theme',next)}catch(e){}
 }
-(function(){try{const s=localStorage.getItem('cr-theme')||'dark';document.documentElement.setAttribute('data-theme',s);document.getElementById('theme-btn').textContent=s==='dark'?'☀️':'🌙'}catch(e){}})();
+(function(){try{const s=localStorage.getItem('cr-theme')||'dark';document.documentElement.setAttribute('data-theme',s);document.getElementById('theme-btn').innerHTML=s==='dark'?'<svg class="icon"><use href="#i-sun"/></svg>':'<svg class="icon"><use href="#i-moon"/></svg>'}catch(e){}})();
 
 /* ═══ CLI copy ═══ */
 function copyCli(){
@@ -530,7 +553,7 @@ function renderIssues(report){
     const src=i.source?`<span class="badge b-${i.source}">${i.source}</span>`:'';
     const rid=i.rule_id?`<span class="tag">${esc(i.rule_id)}</span>`:'';
     const conf=(i.confidence!=null)?`<span class="tag">${(i.confidence*100|0)}%</span>`:'';
-    const fix=i.fix_code?`<div class="fix-block"><p style="color:var(--text-3);font-size:.78rem;margin-bottom:4px">${t('issue.fixCode')}</p><pre class="code"><code>${hl(i.fix_code)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(i.fix_code)}">📋 ${LANG==='zh'?'复制':'Copy'}</button><button class="copy-btn apply" onclick="applyFix(${idx})">⚡ ${LANG==='zh'?'应用':'Apply'}</button></div>`:'';
+    const fix=i.fix_code?`<div class="fix-block"><p style="color:var(--text-3);font-size:.78rem;margin-bottom:4px">${t('issue.fixCode')}</p><pre class="code"><code>${hl(i.fix_code)}</code></pre><button class="copy-btn" onclick="copyText(this.dataset.c)" data-c="${attrEsc(i.fix_code)}"><svg class='icon'><use href='#i-clipboard'/></svg> ${LANG==='zh'?'复制':'Copy'}</button><button class="copy-btn apply" onclick="applyFix(${idx})"><svg class='icon'><use href='#i-zap'/></svg> ${LANG==='zh'?'应用':'Apply'}</button></div>`:'';
     return`<div class="issue" onclick="this.classList.toggle('open')"><div class="issue-top"><span class="badge b-${i.severity}">${i.severity}</span>${src}${esc(i.title)}${line}${rid}${conf}</div><div class="issue-body"><p><b>${t('issue.category')}</b>${esc(i.category)}</p><p>${esc(i.description)}</p><p style="color:var(--text-3)"><b>${t('issue.suggestion')}</b>${esc(i.suggestion)}</p>${fix}</div></div>`;
   }).join('');
 }
@@ -574,7 +597,7 @@ async function run(){
     else{endpoint='/v1/review';body.code=content}
     const resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await resp.json();
-    if(!resp.ok){reportEl.innerHTML=`<div class="report-empty" style="color:var(--danger)">❌ ${esc(data.error||resp.statusText)}</div>`;statusEl.textContent='';return}
+    if(!resp.ok){reportEl.innerHTML=`<div class="report-empty" style="color:var(--danger)"><svg class='icon'><use href='#i-x'/></svg> ${esc(data.error||resp.statusText)}</div>`;statusEl.textContent='';return}
     if(mode==='fix'){
       const res=data.result||{};fixCard.style.display='block';
       reportEl.innerHTML=`<p style="color:var(--text-2);font-size:.85rem">${esc(res.explanation||'')}</p>`;
@@ -586,7 +609,7 @@ async function run(){
     if(data.files_changed)extra=`<div class="sub">${LANG==='zh'?'变更':'Changes'}: ${esc(data.files_changed.join(', '))} · +${data.added_lines} -${data.removed_lines}</div>`;
     reportEl.innerHTML=renderReport(r,data.model)+(extra?`<div style="margin-top:12px">${extra}</div>`:'');
     statusEl.textContent=t('demo.done');
-  }catch(e){reportEl.innerHTML=`<div class="report-empty" style="color:var(--danger)">❌ ${esc(e.message)}</div>`;statusEl.textContent=''}
+  }catch(e){reportEl.innerHTML=`<div class="report-empty" style="color:var(--danger)"><svg class='icon'><use href='#i-x'/></svg> ${esc(e.message)}</div>`;statusEl.textContent=''}
   finally{btn.disabled=false}
 }
 btn.addEventListener('click',run);
