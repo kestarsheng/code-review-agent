@@ -220,6 +220,99 @@ RULES: list[Rule] = [
        "若 arg 内容来自用户输入且未做校验，可能被注入恶意参数。",
        "对用户输入做严格校验，或使用 .args() 传入固定参数列表。"),
 
+    # ── TypeScript: Best Practice ────────────────────────────────
+    _r("TS-A001", "typescript", "major", "maintainability",
+       r"\w+\s*!\s*\.|\w+\s*!\s*[;,\)]",
+       0.60,
+       "使用非空断言操作符 !",
+       "TS 非空断言 ! 会跳过编译期空值检查，运行时若值为 null/undefined 将直接抛错。",
+       "用显式空值检查替代断言：\nif (user?.address) { ... }"),
+    _r("TS-B001", "typescript", "major", "best_practice",
+       r":\s*any\b|as\s+any\b|<any>",
+       0.65,
+       "使用 any 类型绕过类型检查",
+       "any 会让 TypeScript 退化为纯 JS，丢失全部类型安全保障，是类型逃逸口。",
+       "用 unknown + 类型收窄，或定义明确接口类型。"),
+    _r("TS-B002", "typescript", "minor", "maintainability",
+       r"@ts-ignore\b",
+       0.80,
+       "使用 @ts-ignore 静默类型错误",
+       "@ts-ignore 会掩盖真实类型错误，升级依赖后可能悄悄失配。",
+       "优先修复类型错误本身；确实需要时用 @ts-expect-error 并说明原因。"),
+    _r("TS-B003", "typescript", "minor", "best_practice",
+       r"console\.(?:log|debug)\s*\(",0.55,
+       "遗留 console.log 调试输出",
+       "把 console.log 留在生产代码中会泄漏调试信息、影响性能。",
+       "替换成正式日志库（如 loglevel/winston）或删除。"),
+
+    # ── C/C++: Security ──────────────────────────────────────────
+    _r("C-S001", "c", "critical", "security",
+       r"\b(?:strcpy|strcat)\s*\(",
+       0.90,
+       "使用不安全的 strcpy/strcat",
+       "strcpy/strcat 不检查目标缓冲区大小，存在经典的缓冲区溢出风险（CWE-121/122）。",
+       "改用 strncpy/strncat 并显式保证结尾\\0，或使用正版安全 API：\n"
+       "snprintf(dst, sizeof dst, \"%s\", src)"),
+    _r("C-S002", "c", "major", "security",
+       r"\bsprintf\s*\(",
+       0.85,
+       "使用 sprintf 存在溢出风险",
+       "sprintf 不检查输出缓冲区边界，格式化输出超出容量时直接破坏内存。",
+       "使用 snprintf(buf, sizeof buf, ...) 并保留'\0'的位置。"),
+    _r("C-S003", "c", "critical", "security",
+       r"\bgets\s*\(",
+       0.95,
+       "使用 gets() 读取输入",
+       "gets() 不限制读取长度，任何超长输入都会造成缓冲区溢出，已被 C11 标准移除。",
+       "使用 fgets(buf, sizeof buf, stdin) 或 POSIX getline()。"),
+    _r("C-S004", "c", "major", "security",
+       r"\b(?:printf|fprintf|sprintf|snprintf)\s*\(\s*(?!['\"])(?:[^,)]|\w)+\s*\)",
+       0.75,
+       "使用变量作为格式化字符串",
+       "把用户可控数据当作格式化字符串传入 printf 系函数，可被 %n 等格式化符攻击（CWE-134）。",
+       "格式串固定为字面量，数据通过参数传入：\nprintf(\"%s\", user_input)"),
+
+    # ── Shell: Security ──────────────────────────────────────────
+    _r("SH-S001", "shell", "critical", "security",
+       r"\beval\s+",
+       0.90,
+       "shell 中使用 eval 执行动态内容",
+       "eval 会把字符串当代码执行，若内容来自外部输入则等于远程命令注入。",
+       "避免 eval；需要执行命令时用数组参数（bash）或 exec 配合参数校验。"),
+    _r("SH-S002", "shell", "major", "security",
+       r"curl\s+[^|]*\|?\s*(?:sh|bash)\b",
+       0.85,
+       "直接执行管道下载的脚本（curl | sh）",
+       "curl | sh 会执行不可审阅的远程脚本，供应链/中间人攻击风险高。",
+       "先下载到本地人工审查签名后再执行，或使用包管理器安装。"),
+    _r("SH-S003", "shell", "critical", "security",
+       r"rm\s+(?:-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*)\s+/(?!tmp|\$)",
+       0.75,
+       "rm -rf 作用于根目录",
+       "rm -rf / 会递归删除整个文件系统，是不可恢复的灾难性操作。",
+       "删除前确认绝对路径，禁用通配符直接操作根路径，并在 CI 中拦截此命令。"),
+    _r("SH-B001", "shell", "major", "best_practice",
+       r"set\s+\+\s*e",
+       0.60,
+       "脚本未开启 set -e 错误退出",
+       "未设置 set -e 时命令失败不会终止脚本，错误会被静默忽略导致后续连锁失败。",
+       "在脚本开头添加 set -euo pipefail 以在错误发生时立即退出。"),
+
+    # ── Go: Reliability & Concurrency ────────────────────────────
+    _r("GO-S002", "go", "major", "correctness",
+       r",\s*_\s*:?=|[:=]\s*_\s*,|^\s*_\s*=\s*",
+       0.70,
+       "忽略函数返回值（error 被丢弃）",
+       "用空白标识符 _ 丢弃 error 返回值会静默吞掉失败，后续使用错误结果是潜在 bug。",
+       "显式处理 error：\n"
+       "if _, err := doSomething(); err != nil { return err }"),
+    _r("GO-S003", "go", "major", "performance",
+       r"\bgo\s+(?:func|[\w.]+)\(?",
+       0.60,
+       "启动 goroutine 但未见同步机制",
+       "直接 go func 启动的 goroutine 若没有 WaitGroup/channel 同步，会造成并发竞态或泄漏。",
+       "使用 errgroup/sync.WaitGroup 等机制等待完成并聚合错误。"),
+
     # ── Cross-language: AI Hallucination Patterns ─────────────────
     _r("AI-H001", "*", "major", "ai_pattern",
        r"(?:import|from|require)\s+['\"](?:react|vue|angular|svelte|next|nuxt)/"
@@ -260,7 +353,7 @@ def detect_language(code: str, hint: str = "") -> str:
     mapping = {
         "py": "python", "python": "python", "python3": "python",
         "js": "javascript", "javascript": "javascript", "jsx": "javascript",
-        "ts": "javascript", "typescript": "javascript", "tsx": "javascript",
+        "ts": "typescript", "typescript": "typescript", "tsx": "typescript",
         "java": "java", "jsp": "java",
         "go": "go", "golang": "go",
         "c": "c", "cpp": "c", "c++": "c", "h": "c",
@@ -277,6 +370,9 @@ def detect_language(code: str, hint: str = "") -> str:
         (r"\bimport\s+java\.", "java"),
         (r"\bpackage\s+\w+\s+import\s+", "go"),
         (r"\bfunc\s+\w+\s*\(", "go"),
+        (r"\binterface\s+\w+\s*[=\{\|]", "typescript"),
+        (r"\btype\s+\w+\s*=\s*[\{\w]", "typescript"),
+        (r"\b(?:const|let|var)\s+\w+\s*:", "typescript"),
         (r"\b(?:const|let|var)\s+\w+\s*=", "javascript"),
         (r"\bfn\s+\w+\s*\(", "rust"),
         (r"\bdef\s+\w+\s*$", "ruby"),
@@ -287,6 +383,13 @@ def detect_language(code: str, hint: str = "") -> str:
         if re.search(pattern, code):
             return lang
     return ""
+
+
+# Languages that share rule coverage (a typechecking language also runs the
+# rules of its runtime sibling, e.g. TypeScript also applies JavaScript rules).
+_LANG_GROUP: dict[str, set[str]] = {
+    "typescript": {"typescript", "javascript"},
+}
 
 def _line_number(code: str, pos: int) -> int:
     return code.count("\n", 0, pos) + 1
@@ -377,7 +480,8 @@ def run_rules(code: str, language: str = "") -> list[Finding]:
     findings: list[Finding] = []
     for rule in RULES:
         if rule.language != "*" and rule.language != detected:
-            continue
+            if rule.language not in _LANG_GROUP.get(detected, set()):
+                continue
         for match in rule.pattern.finditer(code):
             fix_code = None
             generator = _FIX_GENERATORS.get(rule.id)
