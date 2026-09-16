@@ -66,6 +66,10 @@ class ReviewReport(BaseModel):
     issues: list[ReviewIssue]
     strengths: list[str]
     improvements: list[str]
+    metrics: dict | None = Field(
+        default=None,
+        description="Deterministic quality metrics (lines, function length, cyclomatic complexity, comment ratio)",
+    )
     engine_info: dict = Field(
         default_factory=dict,
         description="Engine metadata: rule_count, llm_count, confirmed_count, languages",

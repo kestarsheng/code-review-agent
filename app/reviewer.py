@@ -20,6 +20,7 @@ from openai import OpenAI
 from .ast_analyzer import analyze_python
 from .config import get_settings
 from .diff_parser import diff_summary, parse_diff
+from .metrics import compute_metrics
 from .prompts import (
     DIFF_SYSTEM_PROMPT,
     FILES_SYSTEM_PROMPT,
@@ -223,6 +224,7 @@ def review_code(code: str, language: str = "", context: str = "") -> dict[str, A
         "issues": merged_issues,
         "strengths": llm_data.get("strengths", []),
         "improvements": llm_data.get("improvements", []),
+        "metrics": compute_metrics(code, language),
         "engine_info": engine_info,
     }
     return report
@@ -246,6 +248,7 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
             "issues": [],
             "strengths": ["变更无引入新代码的风险"],
             "improvements": [],
+            "metrics": compute_metrics("", language),
             "engine_info": _engine_stats([], 0),
             "diff_meta": {
                 "files_changed": parsed.files_changed,
@@ -296,6 +299,7 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
         "issues": merged_issues,
         "strengths": llm_data.get("strengths", []),
         "improvements": llm_data.get("improvements", []),
+        "metrics": compute_metrics(parsed.reconstructed_code, language),
         "engine_info": engine_info,
         "diff_meta": {
             "files_changed": parsed.files_changed,
@@ -311,6 +315,8 @@ def _build_report(
     llm_data: dict[str, Any],
     merged_issues: list[dict],
     total_rules_run: int,
+    code: str = "",
+    language: str = "",
 ) -> dict[str, Any]:
     """Build a standard review report from LLM data and merged issues."""
     engine_info = _engine_stats(merged_issues, total_rules_run)
@@ -325,7 +331,7 @@ def _build_report(
         else "D"
     )
 
-    return {
+    report = {
         "summary": llm_data.get("summary", ""),
         "score": overall_score,
         "grade": grade,
@@ -335,6 +341,9 @@ def _build_report(
         "improvements": llm_data.get("improvements", []),
         "engine_info": engine_info,
     }
+    if code:
+        report["metrics"] = compute_metrics(code, language)
+    return report
 
 
 def review_files(
@@ -375,6 +384,7 @@ def review_files(
              "strengths": [], "improvements": []},
             file_merged,
             len(file_findings),
+            code=content, language=lang,
         )
         file_reports.append({
             "filename": filename,
@@ -395,7 +405,10 @@ def review_files(
 
     all_code = "\n\n".join(f["content"] for f in files)
     overall_merged = merge_findings(all_rule_findings, llm_issues, all_code)
-    overall_report = _build_report(llm_data, overall_merged, len(all_rule_findings))
+    overall_report = _build_report(
+        llm_data, overall_merged, len(all_rule_findings),
+        code=all_code, language="",
+    )
 
     return {
         "file_reports": file_reports,

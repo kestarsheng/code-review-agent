@@ -6,13 +6,14 @@ Tools:
 - review_diff:    dual-engine review of a unified diff / PR     [LLM]
 - review_files:   dual-engine review of multiple files          [LLM]
 - detect_security: fast rule-only security scan (instant, free)
+- analyze_metrics: deterministic quality metrics (instant, free)
 - list_rules:     list all built-in rule engine rules (instant)
 - explain_issue:  explain a rule in detail (instant, free)
 - suggest_fix:    generate corrected code for known issues      [LLM]
 
 Usage guidance for agents:
-1. Start cheap: use detect_security / list_rules / explain_issue first
-   (no LLM cost, millisecond latency).
+1. Start cheap: use detect_security / analyze_metrics / list_rules /
+   explain_issue first (no LLM cost, millisecond latency).
 2. For a full analysis call review_code / review_diff / review_files with
    detail="brief" (default) to save context tokens; use detail="full" when
    the user needs every fix suggestion.
@@ -27,6 +28,7 @@ import json
 from fastmcp import FastMCP
 
 from .config import PROJECT_SLUG
+from .metrics import compute_metrics
 from .reviewer import (
     ReviewError,
     _build_brief_report,
@@ -41,13 +43,14 @@ from .rules_engine import RULES, run_rules
 mcp = FastMCP(
     PROJECT_SLUG,
     instructions=(
-        "Dual-engine code review assistant. Rule engine + LLM semantic review "
-        "with cross-validation. Free instant tools (no LLM call): "
-        "detect_security, list_rules, explain_issue. LLM tools: review_code, "
-        "review_diff, review_files (use detail='brief' to save context unless "
-        "the user needs full details), suggest_fix. Workflow: quick scan with "
-        "detect_security first, then deep review, then explain_issue/suggest_fix "
-        "as needed."
+        "Dual-engine code review assistant. Rule engine + AST analysis + LLM "
+        "semantic review with cross-validation. Free instant tools (no LLM "
+        "call): detect_security, analyze_metrics, list_rules, explain_issue. "
+        "LLM tools: review_code, review_diff, review_files (use "
+        "detail='brief' to save context unless the user needs full details), "
+        "suggest_fix. Workflow: quick scan with detect_security and "
+        "analyze_metrics first, then deep review, then explain_issue/"
+        "suggest_fix as needed."
     ),
 )
 
@@ -242,6 +245,26 @@ def detect_security(code: str, language: str = "") -> str:
                 for f in security_findings
             ],
         },
+        ensure_ascii=False,
+    )
+
+
+@mcp.tool()
+def analyze_metrics(code: str, language: str = "") -> str:
+    """Compute deterministic code quality metrics — instant and free, no LLM.
+
+    Use this for a quantitative health check while coding: lines, function
+    length distribution, cyclomatic complexity, comment ratio, long lines.
+
+    Args:
+        code: source code to measure.
+        language: programming language hint.
+
+    Returns:
+        JSON string with the metrics object.
+    """
+    return json.dumps(
+        {"ok": True, "metrics": compute_metrics(code, language)},
         ensure_ascii=False,
     )
 

@@ -23,6 +23,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from .config import PROJECT_SLUG, get_settings
 from .mcp_server import mcp
+from .metrics import compute_metrics
 from .reviewer import (
     ReviewError,
     explain_issue,
@@ -101,6 +102,7 @@ def api_index() -> dict:
             "POST /v1/review_diff": "review a unified diff",
             "POST /v1/review_files": "multi-file batch review",
             "POST /v1/suggest_fix": "generate corrected code",
+            "POST /v1/metrics": "deterministic quality metrics (no LLM)",
             "GET /v1/rules": "list built-in rule engine rules",
             "GET /v1/rules/{rule_id}": "explain one rule",
             "GET /health": "health check (deployed commit)",
@@ -170,6 +172,24 @@ async def review_files_endpoint(req: FilesReviewRequest) -> FilesReviewResponse:
         file_reports=result["file_reports"],
         overall_report=result["overall_report"],
     )
+
+
+@app.post("/v1/metrics", tags=["review"])
+async def metrics_endpoint(req: ReviewRequest) -> dict:
+    """Compute deterministic quality metrics instantly, no LLM call.
+
+    Returns lines / function length / cyclomatic complexity / comment ratio.
+    """
+    if len(req.code) > settings.max_code_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"code 过长（限制 {settings.max_code_chars} 字符）",
+        )
+    return {
+        "ok": True,
+        "language": req.language,
+        "metrics": compute_metrics(req.code, req.language),
+    }
 
 
 @app.get("/v1/rules", tags=["review"])

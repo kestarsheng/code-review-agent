@@ -11,6 +11,7 @@ from app.main import app
 from app.reviewer import _extract_json
 from app.rules_engine import detect_language, merge_findings, run_rules
 from app.ast_analyzer import analyze_python
+from app.metrics import compute_metrics
 
 client = TestClient(app)
 
@@ -743,3 +744,55 @@ def test_review_response_accepts_ast_source():
         json={"code": "def stub():\n    pass\n", "language": "python"},
     )
     assert resp.status_code == 502  # LLM not configured -> expected ReviewError
+
+# ── Quality metrics engine ───────────────────────────────────────
+
+def test_metrics_basic_counts():
+    code = "# comment\n\ndef f():\n    return 1\n" + ("x = 1\n" * 20)
+    m = compute_metrics(code, "python")
+    assert m["lines"]["comment"] == 1
+    assert m["lines"]["blank"] == 1
+    assert m["lines"]["code"] >= 21
+    assert m["functions"]["count"] == 1
+
+
+def test_metrics_cyclomatic_complexity():
+    code = ("def go(x):\n"
+            "    if x > 1:\n"
+            "        for i in range(x):\n"
+            "            if i % 2 == 0:\n"
+            "                continue\n"
+            "    return x\n")
+    m = compute_metrics(code, "python")
+    assert m["complexity"]["max"] == 4
+    assert m["complexity"]["most_complex"][0]["name"] == "go"
+
+
+def test_metrics_syntax_error_flag():
+    m = compute_metrics("def broken(:\n", "python")
+    assert m["syntax_error"] is True
+    assert m["functions"]["count"] == 0
+
+
+def test_metrics_detects_long_lines():
+    code = "x = " + "a" * 150 + "\n"
+    m = compute_metrics(code, "python")
+    assert m["long_lines"] == 1
+
+
+def test_metrics_non_python_fallback():
+    code = "function greet(name) {\n  console.log(name)\n}\n"
+    m = compute_metrics(code, "javascript")
+    assert m["language"] == "javascript"
+    assert m["functions"]["count"] >= 1
+
+
+def test_metrics_endpoint_no_llm():
+    resp = client.post(
+        "/v1/metrics",
+        json={"code": "def f():\n    return 1\n", "language": "python"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["metrics"]["functions"]["count"] == 1
