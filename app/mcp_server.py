@@ -29,6 +29,7 @@ from fastmcp import FastMCP
 
 from .config import PROJECT_SLUG
 from .metrics import compute_metrics
+from .sarif import sarif_from_code
 from .reviewer import (
     ReviewError,
     _build_brief_report,
@@ -265,6 +266,27 @@ def analyze_metrics(code: str, language: str = "") -> str:
     """
     return json.dumps(
         {"ok": True, "metrics": compute_metrics(code, language)},
+        ensure_ascii=False,
+    )
+
+
+@mcp.tool()
+def export_sarif(code: str, language: str = "", uri: str = "snippet.py") -> str:
+    """Export deterministic findings as SARIF 2.1.0 — instant, free, CI-ready.
+
+    The output is consumable by VS Code (Sarif Viewer), GitHub Code Scanning
+    and any SARIF-aware pipeline tool. Runs rules + AST analysis only (no LLM).
+
+    Args:
+        code: source code to analyze.
+        language: programming language hint.
+        uri: artifact URI to attach findings to (e.g. 'src/main.py').
+
+    Returns:
+        JSON string of the SARIF 2.1.0 document.
+    """
+    return json.dumps(
+        sarif_from_code(code, language, uri=uri),
         ensure_ascii=False,
     )
 

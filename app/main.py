@@ -24,6 +24,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from .config import PROJECT_SLUG, get_settings
 from .mcp_server import mcp
 from .metrics import compute_metrics
+from .sarif import sarif_from_code
 from .reviewer import (
     ReviewError,
     explain_issue,
@@ -103,6 +104,7 @@ def api_index() -> dict:
             "POST /v1/review_files": "multi-file batch review",
             "POST /v1/suggest_fix": "generate corrected code",
             "POST /v1/metrics": "deterministic quality metrics (no LLM)",
+            "POST /v1/sarif": "export findings as SARIF 2.1.0 (CI-ready)",
             "GET /v1/rules": "list built-in rule engine rules",
             "GET /v1/rules/{rule_id}": "explain one rule",
             "GET /health": "health check (deployed commit)",
@@ -190,6 +192,22 @@ async def metrics_endpoint(req: ReviewRequest) -> dict:
         "language": req.language,
         "metrics": compute_metrics(req.code, req.language),
     }
+
+
+@app.post("/v1/sarif", tags=["review"])
+async def sarif_endpoint(req: ReviewRequest) -> dict:
+    """Export deterministic findings as SARIF 2.1.0 — no LLM, CI-ready.
+
+    The output is consumable by VS Code (Sarif Viewer), GitHub Code Scanning
+    and any SARIF-aware tool. Runs rules + AST analysis only.
+    """
+    if len(req.code) > settings.max_code_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"code 过长（限制 {settings.max_code_chars} 字符）",
+        )
+    uri = req.context or "snippet.py"
+    return sarif_from_code(req.code, req.language, uri=uri)
 
 
 @app.get("/v1/rules", tags=["review"])

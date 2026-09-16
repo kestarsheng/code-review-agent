@@ -855,3 +855,34 @@ def test_rules_detect_go_swallowed_error():
 def test_rules_total_more_than_40():
     from app.rules_engine import RULES
     assert len(RULES) >= 40
+
+# ── SARIF export ────────────────────────────────────────────────
+
+def test_sarif_structure():
+    from app.sarif import sarif_from_code
+    doc = sarif_from_code("import os\ndef f():\n    return missing\n", "python", "t.py")
+    assert doc["version"] == "2.1.0"
+    assert doc["$schema"].endswith("sarif-2.1.0.json")
+    run = doc["runs"][0]
+    assert run["tool"]["driver"]["name"] == "Code Review Agent"
+    assert len(run["tool"]["driver"]["rules"]) >= 40
+    assert len(run["results"]) >= 1
+
+
+def test_sarif_severity_mapping():
+    from app.sarif import sarif_from_code
+    doc = sarif_from_code("result = eval(x)\n", "python", "t.py")
+    results = doc["runs"][0]["results"]
+    eval_result = next(r for r in results if r["ruleId"] == "PY-S001")
+    assert eval_result["level"] == "error"
+
+
+def test_sarif_endpoint():
+    resp = client.post(
+        "/v1/sarif",
+        json={"code": "result = eval(x)\n", "language": "python"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["version"] == "2.1.0"
+    assert len(body["runs"][0]["results"]) >= 1
