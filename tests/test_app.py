@@ -886,3 +886,64 @@ def test_sarif_endpoint():
     body = resp.json()
     assert body["version"] == "2.1.0"
     assert len(body["runs"][0]["results"]) >= 1
+
+# ── GitHub PR/commit URL fetch ──────────────────────────────────
+
+def test_normalize_pr_url():
+    from app.github_fetch import normalize_to_diff_url
+    diff_url, desc = normalize_to_diff_url(
+        "https://github.com/owner/repo/pull/42"
+    )
+    assert diff_url == "https://github.com/owner/repo/pull/42.diff"
+    assert "owner/repo#42" in desc
+
+
+def test_normalize_commit_url():
+    from app.github_fetch import normalize_to_diff_url
+    diff_url, desc = normalize_to_diff_url(
+        "https://github.com/owner/repo/commit/abc1234"
+    )
+    assert diff_url == "https://github.com/owner/repo/commit/abc1234.diff"
+    assert "abc1234" in desc
+
+
+def test_normalize_already_diff_url():
+    from app.github_fetch import normalize_to_diff_url
+    diff_url, _ = normalize_to_diff_url(
+        "https://github.com/owner/repo/pull/42.diff"
+    )
+    assert diff_url == "https://github.com/owner/repo/pull/42.diff"
+
+
+def test_normalize_invalid_url_raises():
+    from app.github_fetch import normalize_to_diff_url, FetchError
+    with pytest.raises(FetchError):
+        normalize_to_diff_url("https://example.com/foo")
+
+
+def test_review_pr_endpoint_bad_url():
+    resp = client.post(
+        "/v1/review_pr",
+        json={"url": "https://example.com/foo"},
+    )
+    assert resp.status_code == 400
+
+
+def test_review_pr_endpoint_mocked(monkeypatch):
+    fake_diff = (
+        "diff --git a/x.py b/x.py\n"
+        "--- a/x.py\n"
+        "+++ b/x.py\n"
+        "@@ -1,1 +1,2 @@\n"
+        " result = eval(x)\n"
+        "+pass\n"
+    )
+    monkeypatch.setattr(
+        "app.main.fetch_diff",
+        lambda url, token=None: (fake_diff, "PR test/repo#1"),
+    )
+    resp = client.post(
+        "/v1/review_pr",
+        json={"url": "https://github.com/test/repo/pull/1"},
+    )
+    assert resp.status_code == 502  # LLM not configured -> ReviewError

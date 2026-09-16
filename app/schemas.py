@@ -27,6 +27,12 @@ class DiffReviewRequest(BaseModel):
     context: str = Field(default="", max_length=2000, description="Optional context")
 
 
+class PullRequestReviewRequest(BaseModel):
+    url: str = Field(..., min_length=1, description="GitHub PR or commit URL")
+    language: str = Field(default="", description="Programming language hint")
+    context: str = Field(default="", max_length=2000, description="Optional context")
+
+
 class ReviewIssue(BaseModel):
     severity: Severity
     category: Category

@@ -28,6 +28,7 @@ import json
 from fastmcp import FastMCP
 
 from .config import PROJECT_SLUG
+from .github_fetch import FetchError, fetch_diff
 from .metrics import compute_metrics
 from .sarif import sarif_from_code
 from .reviewer import (
@@ -130,6 +131,44 @@ def review_diff_tool(
         return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
     diff_meta = result.pop("diff_meta", {})
     return _wrap_review(result, detail, extra={"diff_meta": diff_meta})
+
+
+@mcp.tool()
+def review_pull_request(
+    url: str,
+    language: str = "",
+    context: str = "",
+    detail: str = "brief",
+) -> str:
+    """Fetch a GitHub PR/commit diff by URL and run dual-engine review.
+
+    Accepts GitHub PR or commit URLs (public repos need no token; private
+    repos read GITHUB_TOKEN from the environment). Use this when the user
+    shares a GitHub link and wants it reviewed.
+
+    Args:
+        url: GitHub PR or commit URL.
+        language: programming language hint.
+        context: optional description of the change purpose.
+        detail: "brief" (default) or "full".
+
+    Returns:
+        JSON string with diff metadata and a structured review report.
+    """
+    try:
+        diff_text, source = fetch_diff(url)
+    except FetchError as exc:
+        return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+    try:
+        result = review_diff(
+            diff=diff_text, language=language, context=context or source
+        )
+    except ReviewError as exc:
+        return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+    diff_meta = result.pop("diff_meta", {})
+    return _wrap_review(
+        result, detail, extra={"diff_meta": diff_meta, "source": source}
+    )
 
 
 @mcp.tool()
