@@ -1,6 +1,6 @@
 # Code Review Agent
 
-**Dual-engine AI code quality review service** (Code Review as a Service). Rule engine + LLM semantic analysis + cross-validation, producing structured reports with per-dimension scores and directly applicable fix code. Provides REST API and MCP tools, callable by Claude Code / Codex / Cursor and other Agents.
+**Triple-engine AI code quality review service** (Code Review as a Service). Rule engine + AST-level static analysis + LLM semantic review with cross-validation, producing structured reports with per-dimension scores, deterministic quality metrics, SARIF export, and directly applicable fix code. Provides REST API and MCP tools, callable by Claude Code / Codex / Cursor and other Agents.
 
 > [中文](README_ZH.md) | English
 
@@ -8,45 +8,58 @@
 >
 > Live demo: https://code-review-agent-ashy-six.vercel.app
 
-## Dual-Engine Architecture
+## Triple-Engine Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              Input: Code / Diff / Multi-file             │
+│              Input: Code / Diff / Multi-file / PR URL     │
 └───────────────┬─────────────────────────────────────────┘
                 ▼
 ┌──────────────────────────┐   ┌─────────────────────────────┐
-│  ① Rule Engine (deterministic) │   │  ② LLM Semantic Analysis (deep) │
-│  · 26 cross-language rules     │   │  · Receives rule pre-scan results │
-│  · Python/JS/Java/Go/Rust      │───▶  · Confirms/denies rule hits (removes false positives) │
-│  · Security/Perf/AI hallucination/style │   │  · Finds semantic issues (logic/architecture) │
-│  · Zero-cost, ms-level, offline │   │  · Generates per-dimension scores & fix_code │
-└───────────────┬──────────┘   └──────────────┬──────────────┘
-                ▼                              ▼
+│  ① Rule Engine (regex)    │   │  ② AST Analysis (Python)     │
+│  · 40 cross-language rules │   │  · Syntax errors (exact)     │
+│  · Python/JS/TS/Java/Go/  │   │  · Undefined variables       │
+│    Rust/C/C++/Shell        │   │  · Unused imports            │
+│  · Security/Perf/AI/style  │   │  · Duplicate definitions     │
+│  · Zero-cost, ms-level     │   │  · Empty stub functions      │
+└──────────┬───────────────┘   └──────────┬──────────────────┘
+           ▔▔▔▔▔▔▔▔┬────────────────────▘
+                     ▼
+┌──────────────────────────┐
+│  ③ LLM Semantic Analysis  │
+│  · Receives rule + AST    │
+│    pre-scan results       │
+│  · Confirms/denies hits   │
+│  · Semantic issues        │
+│  · Scores & fix_code      │
+└──────────┬───────────────┘
+           ▼
 ┌───────────────────────────────────────────────────────────┐
-│  ③ Cross-Validation Merge (merge_findings)                  │
-│  · rule      — rule engine only (high confidence retained)  │
-│  · llm       — LLM only                                     │
-│  · confirmed — both engines agree (confidence +0.3, max 1.0) │
+│  ④ Cross-Validation Merge (merge_findings)                  │
+│  · rule / ast / llm / confirmed (both agree → +0.3 conf)   │
 └───────────────────────────────┬───────────────────────────┘
                                 ▼
 ┌───────────────────────────────────────────────────────────┐
-│  ④ Output: 5-dimension scores + applicable fixes + traceability │
-│  · correctness/security/performance/maintainability/best_practice │
-│  · score = weighted avg (security 30% · correctness 25%)    │
-│  · each issue includes fix_code (copy-paste ready)          │
+│  ⑤ Output: 5-dimension scores + metrics + SARIF + fixes     │
+│  · correctness/security/performance/maintainability/best    │
+│  · quality metrics (cyclomatic complexity, function length)  │
+│  · SARIF 2.1.0 export (VS Code / GitHub Code Scanning)      │
+│  · each issue includes fix_code (copy-paste ready)           │
 └───────────────────────────────────────────────────────────┘
 ```
 
 ## Features
 
-- **Dual-engine review** — Rule engine performs deterministic static scan first, LLM reviews with rule context, cross-validation reduces false positives
+- **Triple-engine review** — Regex rule engine (40 rules, 9 languages) + AST-level static analysis (Python syntax/undefined vars/unused imports/duplicate defs) + LLM semantic review with cross-validation
 - **5-dimension scoring** — Correctness / Security / Performance / Maintainability / Best Practice, each 0–100, weighted composite score
+- **Deterministic quality metrics** — Cyclomatic complexity (McCabe), function length distribution, comment ratio, long lines — zero LLM cost, instant
+- **SARIF 2.1.0 export** — Standards-compliant output for VS Code (Sarif Viewer) and GitHub Code Scanning, CI-ready
+- **GitHub PR/commit URL review** — Paste a PR or commit URL, auto-fetch diff and review
 - **Directly applicable fix code** — Rule engine auto-generates `fix_code` for 8 key rule types, LLM covers complex scenarios
-- **Three review modes** — Single file code, Unified Diff (PR changes), Multi-file batch (cross-file architecture issues)
+- **Four review modes** — Single file code, Unified Diff, Multi-file batch, GitHub PR URL
 - **CLI one-click review** — `python cli.py` reads git diff directly, no pasting needed
-- **MCP toolset** — 7 tools: review / diff review / multi-file review / security scan / rule explanation / fix generation / rule listing
-- **Interactive demo page** — Dark mode, syntax highlighting, dimension score bars, engine visualization, "one-click apply fix"
+- **MCP toolset** — 9 tools: review / diff review / multi-file / PR review / security scan / metrics / SARIF export / rule explanation / fix generation / rule listing
+- **Interactive workbench** — Live demo with Metrics, SARIF, Rules, and PR URL tabs (free & instant, no LLM needed)
 
 ## CLI One-Click Review (Recommended)
 
