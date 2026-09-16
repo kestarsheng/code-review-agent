@@ -17,6 +17,7 @@ from typing import Any
 
 from openai import OpenAI
 
+from .ast_analyzer import analyze_python
 from .config import get_settings
 from .diff_parser import diff_summary, parse_diff
 from .prompts import (
@@ -30,7 +31,7 @@ from .prompts import (
     build_user_prompt,
     build_user_prompt_with_rules,
 )
-from .rules_engine import merge_findings, run_rules
+from .rules_engine import detect_language, merge_findings, run_rules
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +92,34 @@ def _compute_overall_score(dimensions: dict[str, int]) -> int:
     return round(total)
 
 
+def _engine_stats(merged_issues: list[dict], total_rules_run: int) -> dict:
+    """Count issue attribution per engine for the report's engine_info block."""
+    return {
+        "rule_count": sum(1 for i in merged_issues if i.get("source") == "rule"),
+        "ast_count": sum(1 for i in merged_issues if i.get("source") == "ast"),
+        "llm_count": sum(1 for i in merged_issues if i.get("source") == "llm"),
+        "confirmed_count": sum(1 for i in merged_issues if i.get("source") == "confirmed"),
+        "total_rules_run": total_rules_run,
+        "engines": ["rule", "ast", "llm"],
+    }
+
+
 class ReviewError(Exception):
     pass
+
+
+def _run_all_engines(code: str, language: str = "") -> tuple[list, str]:
+    """Run regex rules + AST-level analysis for Python code.
+
+    Returns (findings, detected_language). AST analysis is deterministic
+    and offline; for Python input it runs automatically on top of the
+    regex rule engine.
+    """
+    detected = detect_language(code, language)
+    findings = run_rules(code, language)
+    if detected == "python":
+        findings.extend(analyze_python(code))
+    return findings, detected
 
 
 def _extract_json(text: str) -> dict[str, Any]:
@@ -149,8 +176,8 @@ def review_code(code: str, language: str = "", context: str = "") -> dict[str, A
 
     Returns a structured report with merged findings and engine metadata.
     """
-    # ── Phase 1: Rule engine (fast, local, no API cost) ──
-    rule_findings = run_rules(code, language)
+    # ── Phase 1: Rule + AST engines (fast, local, no API cost) ──
+    rule_findings, _ = _run_all_engines(code, language)
     rule_dicts = [
         {
             "rule_id": f.rule_id,
@@ -175,9 +202,7 @@ def review_code(code: str, language: str = "", context: str = "") -> dict[str, A
     # ── Phase 3: Merge and attribute ──
     merged_issues = merge_findings(rule_findings, llm_issues, code)
 
-    rule_count = sum(1 for i in merged_issues if i.get("source") == "rule")
-    llm_count = sum(1 for i in merged_issues if i.get("source") == "llm")
-    confirmed_count = sum(1 for i in merged_issues if i.get("source") == "confirmed")
+    engine_info = _engine_stats(merged_issues, len(rule_findings))
 
     # ── Phase 4: Dimension scores ──
     llm_dim_scores = llm_data.get("dimension_scores")
@@ -198,13 +223,7 @@ def review_code(code: str, language: str = "", context: str = "") -> dict[str, A
         "issues": merged_issues,
         "strengths": llm_data.get("strengths", []),
         "improvements": llm_data.get("improvements", []),
-        "engine_info": {
-            "rule_count": rule_count,
-            "llm_count": llm_count,
-            "confirmed_count": confirmed_count,
-            "total_rules_run": len(rule_findings),
-            "engines": ["rule", "llm"],
-        },
+        "engine_info": engine_info,
     }
     return report
 
@@ -227,13 +246,7 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
             "issues": [],
             "strengths": ["变更无引入新代码的风险"],
             "improvements": [],
-            "engine_info": {
-                "rule_count": 0,
-                "llm_count": 0,
-                "confirmed_count": 0,
-                "total_rules_run": 0,
-                "engines": ["rule", "llm"],
-            },
+            "engine_info": _engine_stats([], 0),
             "diff_meta": {
                 "files_changed": parsed.files_changed,
                 "added_lines": parsed.added_lines,
@@ -243,7 +256,7 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
         }
 
     meta = diff_summary(parsed)
-    rule_findings = run_rules(parsed.reconstructed_code, language)
+    rule_findings, _ = _run_all_engines(parsed.reconstructed_code, language)
     rule_dicts = [
         {
             "rule_id": f.rule_id,
@@ -263,10 +276,7 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
     llm_data = _call_llm(DIFF_SYSTEM_PROMPT, user_prompt)
     llm_issues = llm_data.get("issues", [])
     merged_issues = merge_findings(rule_findings, llm_issues, parsed.reconstructed_code)
-
-    rule_count = sum(1 for i in merged_issues if i.get("source") == "rule")
-    llm_count = sum(1 for i in merged_issues if i.get("source") == "llm")
-    confirmed_count = sum(1 for i in merged_issues if i.get("source") == "confirmed")
+    engine_info = _engine_stats(merged_issues, len(rule_findings))
 
     llm_dim_scores = llm_data.get("dimension_scores")
     dimension_scores = _compute_dimension_scores(llm_dim_scores, merged_issues)
@@ -286,13 +296,7 @@ def review_diff(diff: str, language: str = "", context: str = "") -> dict[str, A
         "issues": merged_issues,
         "strengths": llm_data.get("strengths", []),
         "improvements": llm_data.get("improvements", []),
-        "engine_info": {
-            "rule_count": rule_count,
-            "llm_count": llm_count,
-            "confirmed_count": confirmed_count,
-            "total_rules_run": len(rule_findings),
-            "engines": ["rule", "llm"],
-        },
+        "engine_info": engine_info,
         "diff_meta": {
             "files_changed": parsed.files_changed,
             "added_lines": parsed.added_lines,
@@ -309,9 +313,7 @@ def _build_report(
     total_rules_run: int,
 ) -> dict[str, Any]:
     """Build a standard review report from LLM data and merged issues."""
-    rule_count = sum(1 for i in merged_issues if i.get("source") == "rule")
-    llm_count = sum(1 for i in merged_issues if i.get("source") == "llm")
-    confirmed_count = sum(1 for i in merged_issues if i.get("source") == "confirmed")
+    engine_info = _engine_stats(merged_issues, total_rules_run)
 
     llm_dim_scores = llm_data.get("dimension_scores")
     dimension_scores = _compute_dimension_scores(llm_dim_scores, merged_issues)
@@ -331,13 +333,7 @@ def _build_report(
         "issues": merged_issues,
         "strengths": llm_data.get("strengths", []),
         "improvements": llm_data.get("improvements", []),
-        "engine_info": {
-            "rule_count": rule_count,
-            "llm_count": llm_count,
-            "confirmed_count": confirmed_count,
-            "total_rules_run": total_rules_run,
-            "engines": ["rule", "llm"],
-        },
+        "engine_info": engine_info,
     }
 
 
@@ -363,7 +359,7 @@ def review_files(
         content = f["content"]
         lang = f.get("language", "")
 
-        file_findings = run_rules(content, lang)
+        file_findings, _ = _run_all_engines(content, lang)
         all_rule_findings.extend(file_findings)
 
         if file_findings:
@@ -417,7 +413,7 @@ def suggest_fix_for_code(
     Runs the rule engine first to surface deterministic findings, then asks
     the LLM to produce a fully corrected version of the code.
     """
-    rule_findings = run_rules(code, language)
+    rule_findings, _ = _run_all_engines(code, language)
     issues = [
         {
             "rule_id": f.rule_id,

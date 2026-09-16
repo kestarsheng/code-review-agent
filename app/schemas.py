@@ -8,7 +8,7 @@ Severity = Literal["critical", "major", "minor", "info"]
 Category = Literal[
     "correctness", "security", "performance", "maintainability", "best_practice", "ai_pattern"
 ]
-IssueSource = Literal["rule", "llm", "confirmed"]
+IssueSource = Literal["rule", "llm", "confirmed", "ast"]
 
 
 class ReviewRequest(BaseModel):

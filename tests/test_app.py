@@ -10,6 +10,7 @@ from app.diff_parser import parse_diff
 from app.main import app
 from app.reviewer import _extract_json
 from app.rules_engine import detect_language, merge_findings, run_rules
+from app.ast_analyzer import analyze_python
 
 client = TestClient(app)
 
@@ -663,3 +664,82 @@ def test_fix_code_rust_unwrap():
     f = next(x for x in findings if x.rule_id == "RS-P001")
     assert f.fix_code is not None
     assert "unwrap_or_default" in f.fix_code
+
+# ── AST-level analysis engine ────────────────────────────────────
+
+def test_ast_detects_syntax_error():
+    findings = analyze_python("def foo(:\n    pass\n")
+    assert len(findings) == 1
+    assert findings[0].rule_id == "PY-AST-S001"
+    assert findings[0].severity == "critical"
+    assert findings[0].source == "ast"
+    assert findings[0].confidence == 1.0
+
+
+def test_ast_valid_python_is_clean():
+    findings = analyze_python("def add(a: int, b: int) -> int:\n    return a + b\n")
+    assert findings == []
+
+
+def test_ast_detects_unused_import():
+    code = "import os\nimport math\n\nval = math.sqrt(4)\n"
+    findings = analyze_python(code)
+    ids = [f.rule_id for f in findings]
+    assert "PY-AST-I001" in ids
+    unused = [f for f in findings if f.rule_id == "PY-AST-I001"]
+    assert len(unused) == 1
+    assert "os" in unused[0].title
+
+
+def test_ast_detects_undefined_variable_in_function():
+    code = "def process(data):\n    return data + missing_var\n"
+    findings = analyze_python(code)
+    ids = [f.rule_id for f in findings]
+    assert "PY-AST-U001" in ids
+
+
+def test_ast_ignores_module_level_names():
+    code = "print(result_of_undefined())\n"
+    findings = analyze_python(code)
+    ids = [f.rule_id for f in findings]
+    assert "PY-AST-U001" not in ids
+
+
+def test_ast_ignores_builtins_and_params():
+    code = "def f(items):\n    return len(items)\n"
+    findings = analyze_python(code)
+    assert findings == []
+
+
+def test_ast_detects_duplicate_definition():
+    code = "def run():\n    return 1\n\ndef run():\n    return 2\n"
+    findings = analyze_python(code)
+    matches = [f for f in findings if f.rule_id == "PY-AST-D001"]
+    assert len(matches) == 1
+    assert matches[0].line == 4
+
+
+def test_ast_detects_empty_stub_function():
+    code = "def pending():\n    pass\n"
+    findings = analyze_python(code)
+    ids = [f.rule_id for f in findings]
+    assert "PY-AST-M001" in ids
+
+
+def test_ast_runs_within_review_flow():
+    from app.reviewer import _run_all_engines
+
+    code = "import os\n\ndef go():\n    return missing_thing\n"
+    findings, lang = _run_all_engines(code, language="python")
+    ids = [f.rule_id for f in findings]
+    assert lang == "python"
+    assert "PY-AST-I001" in ids
+    assert "PY-AST-U001" in ids
+
+
+def test_review_response_accepts_ast_source():
+    resp = client.post(
+        "/v1/review",
+        json={"code": "def stub():\n    pass\n", "language": "python"},
+    )
+    assert resp.status_code == 502  # LLM not configured -> expected ReviewError
