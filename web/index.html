@@ -176,6 +176,28 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
 
 /* ═══ Toast ═══ */
 #toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);padding:8px 18px;border-radius:99px;font-size:.82rem;z-index:200;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .3s}
+
+/* ═══ Workbench ═══ */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.metric-group{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.metric-group h4{font-size:.78rem;font-weight:700;color:var(--text-2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.metric-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.8rem}
+.metric-label{flex:0 0 auto;min-width:80px;color:var(--text-2)}
+.metric-val{flex:0 0 auto;font-weight:600;color:var(--text-1);min-width:50px;text-align:right}
+.metric-bar{flex:1;height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden}
+.metric-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-2));border-radius:2px;transition:width .4s ease}
+.rules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.rule-lang{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.rule-lang h4{font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.rule-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:.78rem;border-bottom:1px solid var(--border)}
+.rule-item:last-child{border-bottom:none}
+.rule-id{font-family:var(--mono);font-size:.72rem;color:var(--text-3);flex:0 0 70px}
+.rule-sev{font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;flex:0 0 auto}
+.sev-critical{background:#ef444420;color:#ef4444}
+.sev-major{background:#f59e0b20;color:#f59e0b}
+.sev-minor{background:#3b82f620;color:#3b82f6}
+.sev-info{background:#71717a20;color:#71717a}
+.rule-title{flex:1;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -207,6 +229,7 @@ footer{border-top:1px solid var(--border);padding:40px 24px;background:var(--bg-
     <div class="nav-links">
       <a href="#features" data-i18n="nav.features">Features</a>
       <a href="#demo" data-i18n="nav.demo">Try Online</a>
+      <a href="#workbench">Workbench</a>
       <a href="#api">API</a>
       <a href="https://github.com/kestarsheng/code-review-agent" target="_blank">GitHub</a>
     </div>
@@ -339,6 +362,57 @@ def handler(event, context):
     <div class="report-card" id="fix-card" style="display:none;">
       <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px" data-i18n="demo.fixTitle"><svg class="icon"><use href="#i-wrench"/></svg> Fix Solution</h3>
       <div id="fix-report"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Workbench (deterministic, free, instant) ═══ -->
+<section id="workbench" class="demo-section">
+  <div class="section-inner">
+    <div class="section-head">
+      <h2>Live Workbench <span style="font-size:.7em;color:var(--primary)">— free &amp; instant</span></h2>
+      <p>Deterministic engines run in the browser — no LLM, no API key, millisecond latency. Try it now.</p>
+    </div>
+    <div class="demo-card">
+      <div class="demo-tabs">
+        <div class="demo-tab active" id="wb-tab-metrics" onclick="wbTab('metrics')">Metrics</div>
+        <div class="demo-tab" id="wb-tab-sarif" onclick="wbTab('sarif')">SARIF Export</div>
+        <div class="demo-tab" id="wb-tab-rules" onclick="wbTab('rules')">Rule Catalog</div>
+        <div class="demo-tab" id="wb-tab-pr" onclick="wbTab('pr')">PR URL</div>
+      </div>
+      <div class="demo-body">
+        <div id="wb-input-block">
+          <div class="demo-row">
+            <input id="wb-lang" placeholder="Language (python / ts / c / go / shell)" value="python" style="flex:1">
+            <input id="wb-uri" placeholder="Artifact URI (e.g. src/main.py)" value="snippet.py" style="flex:2">
+          </div>
+          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">Source Code</label>
+          <textarea id="wb-code" spellcheck="false" style="min-height:180px">import os
+import unused_module
+
+def process_user(user_id):
+    query = f"SELECT * FROM users WHERE id = {user_id}"
+    result = db.execute(query)
+    password = "hardcoded123456"
+    return eval(result)
+
+def process_user(user_id):
+    return user_id
+
+def placeholder():
+    pass</textarea>
+        </div>
+        <div id="wb-pr-block" style="display:none">
+          <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">GitHub PR or Commit URL</label>
+          <input id="wb-pr-url" placeholder="https://github.com/owner/repo/pull/123" style="width:100%;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text-1);font-size:.85rem">
+          <div style="margin-top:8px;font-size:.78rem;color:var(--text-3)">Public repos need no token. Private repos use GITHUB_TOKEN env var.</div>
+        </div>
+        <button class="btn-run" id="wb-btn"><svg class="icon"><use href="#i-play"/></svg> <span id="wb-btn-text">Run Metrics</span></button>
+        <div class="demo-status" id="wb-status"></div>
+      </div>
+    </div>
+    <div class="report-card">
+      <div class="report-empty" id="wb-result">Click a tab above and run — results appear here instantly.</div>
     </div>
   </div>
 </section>
@@ -613,6 +687,88 @@ async function run(){
   finally{btn.disabled=false}
 }
 btn.addEventListener('click',run);
+
+/* ═══ Workbench (deterministic engines) ═══ */
+let wbMode='metrics';
+const wbBtn=document.getElementById('wb-btn');
+const wbBtnText=document.getElementById('wb-btn-text');
+const wbStatus=document.getElementById('wb-status');
+const wbResult=document.getElementById('wb-result');
+const wbCodeEl=document.getElementById('wb-code');
+const wbLabels={metrics:'Run Metrics',sarif:'Export SARIF',rules:'List Rules',pr:'Review PR'};
+
+function wbTab(tab){
+  wbMode=tab;
+  document.querySelectorAll('[id^="wb-tab-"]').forEach(e=>e.classList.remove('active'));
+  document.getElementById('wb-tab-'+tab).classList.add('active');
+  wbBtnText.textContent=wbLabels[tab];
+  document.getElementById('wb-input-block').style.display=tab==='pr'?'none':'block';
+  document.getElementById('wb-pr-block').style.display=tab==='pr'?'block':'none';
+  wbResult.className='report-empty';
+  wbResult.textContent='Click "'+wbLabels[tab]+'" — results appear here instantly.';
+  wbStatus.textContent='';
+}
+
+function renderMetrics(m){
+  const L=m.lines||{},F=m.functions||{},C=m.complexity||{};
+  const bar=(label,val,max,unit='')=>{
+    const pct=Math.min(100,(val/(max||1))*100);
+    return `<div class="metric-row"><span class="metric-label">${label}</span><span class="metric-val">${val}${unit}</span><div class="metric-bar"><div class="metric-fill" style="width:${pct}%"></div></div></div>`;
+  };
+  return `<div class="metrics-grid">
+    <div class="metric-group"><h4>Lines</h4>
+      ${bar('Total',L.total||0,L.total||1)}
+      ${bar('Code',L.code||0,L.total||1)}
+      ${bar('Comment',L.comment||0,L.total||1)}
+      ${bar('Blank',L.blank||0,L.total||1)}
+      ${bar('Long (>120)',m.long_lines||0,L.total||1)}
+    </div>
+    <div class="metric-group"><h4>Functions</h4>
+      ${bar('Count',F.count||0,20)}
+      ${bar('Avg length',F.average_length||0,40)}
+      ${bar('Max length',F.max_length||0,60)}
+    </div>
+    <div class="metric-group"><h4>Complexity (McCabe)</h4>
+      ${bar('Average',C.average||0,10)}
+      ${bar('Max',C.max||0,15)}
+    </div>
+    <div class="metric-group"><h4>Ratios</h4>
+      ${bar('Comment ratio',((m.comment_ratio||0)*100).toFixed(1),100,'%')}
+    </div>
+    ${F.longest&&F.longest.length?`<div class="metric-group"><h4>Longest Functions</h4>${F.longest.map(f=>`<div class="metric-row"><span class="metric-label">${esc(f.name)}:${f.line}</span><span class="metric-val">${f.length} lines</span></div>`).join('')}</div>`:''}
+    ${C.most_complex&&C.most_complex.length?`<div class="metric-group"><h4>Most Complex</h4>${C.most_complex.map(f=>`<div class="metric-row"><span class="metric-label">${esc(f.name)}:${f.line}</span><span class="metric-val">CC=${f.complexity}</span></div>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function renderRules(data){
+  const rules=data.rules||[];
+  const byLang={};
+  rules.forEach(r=>{byLang[r.language]=byLang[r.language]||[];byLang[r.language].push(r)});
+  return `<div style="margin-bottom:8px;font-size:.85rem;color:var(--text-2)">${data.total} rules across ${Object.keys(byLang).length} languages</div>
+    <div class="rules-grid">${Object.entries(byLang).map(([lang,rs])=>`<div class="rule-lang"><h4>${esc(lang)}</h4>${rs.map(r=>`<div class="rule-item"><span class="rule-id">${esc(r.id)}</span><span class="rule-sev sev-${r.severity}">${esc(r.severity)}</span><span class="rule-title">${esc(r.title)}</span></div>`).join('')}</div>`).join('')}</div>`;
+}
+
+async function wbRun(){
+  wbBtn.disabled=true;wbStatus.textContent='Running…';
+  wbResult.className='';wbResult.innerHTML=`<div class="report-empty">Fetching…</div>`;
+  try{
+    let endpoint,body;
+    if(wbMode==='metrics'){endpoint='/v1/metrics';body={code:wbCodeEl.value,language:document.getElementById('wb-lang').value}}
+    else if(wbMode==='sarif'){endpoint='/v1/sarif';body={code:wbCodeEl.value,language:document.getElementById('wb-lang').value,context:document.getElementById('wb-uri').value}}
+    else if(wbMode==='rules'){endpoint='/v1/rules';body=null}
+    else if(wbMode==='pr'){endpoint='/v1/review_pr';body={url:document.getElementById('wb-pr-url').value}}
+    const opts=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
+    const resp=await fetch(endpoint,opts);
+    const data=await resp.json();
+    if(!resp.ok){wbResult.innerHTML=`<div class="report-empty" style="color:var(--danger)"><svg class='icon'><use href='#i-x'/></svg> ${esc(data.error||resp.statusText)}</div>`;wbStatus.textContent='';return}
+    if(wbMode==='metrics'){wbResult.innerHTML=renderMetrics(data.metrics||{});wbStatus.textContent='Done ✓'}
+    else if(wbMode==='sarif'){wbResult.innerHTML=`<div style="font-size:.8rem;color:var(--text-3);margin-bottom:8px">SARIF 2.1.0 — ${data.runs[0].results.length} results, ${data.runs[0].tool.driver.rules.length} rules</div><pre class="code"><code>${hl(JSON.stringify(data,null,2),'json')}</code></pre>`;wbStatus.textContent='Done ✓'}
+    else if(wbMode==='rules'){wbResult.innerHTML=renderRules(data);wbStatus.textContent='Done ✓'}
+    else if(wbMode==='pr'){const r=data.report||{};wbResult.innerHTML=renderReport(r,data.model);wbStatus.textContent='Done ✓'}
+  }catch(e){wbResult.innerHTML=`<div class="report-empty" style="color:var(--danger)"><svg class='icon'><use href='#i-x'/></svg> ${esc(e.message)}</div>`;wbStatus.textContent=''}
+  finally{wbBtn.disabled=false}
+}
+wbBtn.addEventListener('click',wbRun);
 
 /* ═══ Init lang ═══ */
 (function(){try{const l=localStorage.getItem('cr-lang')||'en';applyLang(l)}catch(e){applyLang('en')}})();
