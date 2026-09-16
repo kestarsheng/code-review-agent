@@ -87,7 +87,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--paper);bord
 .terminal-body .ok{color:#28C840}
 .terminal-body .crit{color:#FF5F57}
 .terminal-body .maj{color:#FEBC2E}
-.terminal-body .dim{color:var(--code-dim)}
+.terminal-body .mute{color:var(--code-dim)}
 .terminal-body .tealc{color:#2DD4BF}
 
 /* ═══ Section ═══ */
@@ -106,7 +106,7 @@ section{padding:80px 32px}
 .feature-content h3{font-family:var(--display);font-size:1.15rem;font-weight:600;margin-bottom:8px;color:var(--ink);letter-spacing:-.01em}
 .feature-content p{font-size:.9rem;color:var(--ink-2);line-height:1.7;max-width:600px}
 .feature-content .code-snippet{margin-top:14px;background:var(--code-bg);color:var(--code-text);padding:12px 16px;border-radius:var(--radius);font-family:var(--mono);font-size:.74rem;line-height:1.7;overflow-x:auto;white-space:pre}
-.feature-content .code-snippet .dim{color:var(--code-dim)}
+.feature-content .code-snippet .mute{color:var(--code-dim)}
 .feature-content .code-snippet .tealc{color:#2DD4BF}
 .feature-content .code-snippet .crit{color:#FF5F57}
 .feature-content .code-snippet .maj{color:#FEBC2E}
@@ -291,22 +291,22 @@ footer{border-top:1px solid var(--border);padding:40px 32px;background:var(--pap
         <div class="terminal-head"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttitle">cli.py — commit HEAD~1</span></div>
         <div class="terminal-body"><span class="cmd">$</span> python cli.py --commit HEAD~1
 
-<span class="dim">Analyzing 2 files · 3 engines...</span>
-<span class="ok">✓</span> Review complete  <span class="dim">Score: 72/C  Issues: 4</span>
+<span class="mute">Analyzing 2 files · 3 engines...</span>
+<span class="ok">✓</span> Review complete  <span class="mute">Score: 72/C  Issues: 4</span>
 
  <span class="crit">● CRITICAL</span>  SQL Injection
-   line 2  <span class="dim">rule:sql_injection · confirmed</span>
+   line 2  <span class="mute">rule:sql_injection · confirmed</span>
    <span class="tealc">→</span> Use parameterized query
 
  <span class="maj">● MAJOR</span>     Hardcoded Secret
-   line 6  <span class="dim">rule:hardcoded_secret · confirmed</span>
+   line 6  <span class="mute">rule:hardcoded_secret · confirmed</span>
    <span class="tealc">→</span> Read from env variable
 
  <span class="maj">● MAJOR</span>     eval() Usage
-   line 7  <span class="dim">ast:eval_usage</span>
+   line 7  <span class="mute">ast:eval_usage</span>
    <span class="tealc">→</span> Replace with json.loads
 
-<span class="dim">─── engines ───────────────────</span>
+<span class="mute">─── engines ───────────────────</span>
  rule: 2   ast: 1   llm: 1   <span class="tealc">confirmed: 2</span></div>
       </div>
     </div>
@@ -327,7 +327,7 @@ footer{border-top:1px solid var(--border);padding:40px 32px;background:var(--pap
         <div class="feature-content">
           <h3 data-i18n="features.f1t">Rule Engine — 40 patterns, zero API cost</h3>
           <p data-i18n="features.f1d">Deterministic pattern matching across 9 languages. Security vulnerabilities, performance anti-patterns, AI hallucination signatures. Runs in milliseconds, works offline, never costs a token.</p>
-          <div class="code-snippet"><span class="dim"># matches in &lt;5ms, no LLM call</span>
+          <div class="code-snippet"><span class="mute"># matches in &lt;5ms, no LLM call</span>
 <span class="crit">sql_injection</span>      → CRITICAL  line 2
 <span class="maj">hardcoded_secret</span>   → MAJOR     line 6
 <span class="maj">eval_usage</span>         → CRITICAL  line 7</div>
@@ -338,10 +338,10 @@ footer{border-top:1px solid var(--border);padding:40px 32px;background:var(--pap
         <div class="feature-content">
           <h3 data-i18n="features.f2t">AST Analyzer — structural analysis</h3>
           <p data-i18n="features.f2d">Python ast.parse walks the syntax tree to catch what regex can't: undefined variables, unused imports, duplicate definitions, empty functions, syntax errors. Deterministic, precise, zero false positives on structural issues.</p>
-          <div class="code-snippet"><span class="dim"># ast_analyzer.py — structural only</span>
-undefined_var    → <span class="maj">MAJOR</span>   <span class="dim">'user_id' used before assignment</span>
-unused_import    → <span class="dim">INFO</span>    <span class="dim">'os' imported but never used</span>
-duplicate_def    → <span class="maj">MAJOR</span>   <span class="dim">'process_user' defined twice</span></div>
+          <div class="code-snippet"><span class="mute"># ast_analyzer.py — structural only</span>
+undefined_var    → <span class="maj">MAJOR</span>   <span class="mute">'user_id' used before assignment</span>
+unused_import    → <span class="mute">INFO</span>    <span class="mute">'os' imported but never used</span>
+duplicate_def    → <span class="maj">MAJOR</span>   <span class="mute">'process_user' defined twice</span></div>
         </div>
       </div>
       <div class="feature-item">
@@ -349,11 +349,11 @@ duplicate_def    → <span class="maj">MAJOR</span>   <span class="dim">'process
         <div class="feature-content">
           <h3 data-i18n="features.f3t">LLM Semantic — the deep review</h3>
           <p data-i18n="features.f3d">Receives rule + AST pre-scan results, then does what deterministic engines can't: logic errors, architecture flaws, business boundary violations. Confirms or denies rule hits, eliminating false positives.</p>
-          <div class="code-snippet"><span class="dim">// LLM receives pre-scan context, then:</span>
+          <div class="code-snippet"><span class="mute">// LLM receives pre-scan context, then:</span>
 <span class="tealc">"User input flows into SQL query without</span>
 <span class="tealc"> sanitization — confirmed injection risk."</span>
-<span class="dim">→ issue.source = "confirmed"  // both agree</span>
-<span class="dim">→ issue.confidence = 0.95     // auto-boosted</span></div>
+<span class="mute">→ issue.source = "confirmed"  // both agree</span>
+<span class="mute">→ issue.confidence = 0.95     // auto-boosted</span></div>
         </div>
       </div>
       <div class="feature-item">
@@ -361,10 +361,10 @@ duplicate_def    → <span class="maj">MAJOR</span>   <span class="dim">'process
         <div class="feature-content">
           <h3 data-i18n="features.f4t">5-Dimension Scoring — quantified quality</h3>
           <p data-i18n="features.f4d">Correctness, Security, Performance, Maintainability, Best Practice — each 0–100. Composite score weighted: security 30% + correctness 25%. Every issue links back to its source engine and rule ID.</p>
-          <div class="code-snippet"><span class="dim">security:     45/100  </span><span class="crit">████████░░░░░░</span> <span class="crit">D</span>
-<span class="dim">correctness:  72/100  </span><span class="maj">██████████████</span> <span class="maj">C</span>
-<span class="dim">performance:  85/100  </span><span class="ok">████████████████</span> <span class="ok">B</span>
-<span class="dim">overall:      68/C</span></div>
+          <div class="code-snippet"><span class="mute">security:     45/100  </span><span class="crit">████████░░░░░░</span> <span class="crit">D</span>
+<span class="mute">correctness:  72/100  </span><span class="maj">██████████████</span> <span class="maj">C</span>
+<span class="mute">performance:  85/100  </span><span class="ok">████████████████</span> <span class="ok">B</span>
+<span class="mute">overall:      68/C</span></div>
         </div>
       </div>
       <div class="feature-item">
@@ -372,7 +372,7 @@ duplicate_def    → <span class="maj">MAJOR</span>   <span class="dim">'process
         <div class="feature-content">
           <h3 data-i18n="features.f5t">Fix Code — copy-paste ready</h3>
           <p data-i18n="features.f5d">Every issue ships with a fix_code snippet. Rule engine auto-generates for 8 key patterns. LLM covers complex semantic fixes. One click applies directly to your input — no manual rewriting.</p>
-          <div class="code-snippet"><span class="dim">--- line 2</span>
+          <div class="code-snippet"><span class="mute">--- line 2</span>
 <span class="crit">- query = f"SELECT * FROM users WHERE id = {user_id}"</span>
 <span class="ok">+ query = "SELECT * FROM users WHERE id = ?"</span>
 <span class="ok">+ cursor.execute(query, (user_id,))</span></div>
@@ -383,11 +383,11 @@ duplicate_def    → <span class="maj">MAJOR</span>   <span class="dim">'process
         <div class="feature-content">
           <h3 data-i18n="features.f6t">MCP + REST + SARIF — integrate anywhere</h3>
           <p data-i18n="features.f6d">9 MCP tools for AI agents. 12 REST endpoints for CI/CD. SARIF 2.1.0 export for GitHub Code Scanning and VS Code. PR URL review for GitHub pull requests. All on one server.</p>
-          <div class="code-snippet"><span class="tealc">POST</span> /v1/review        <span class="dim">→ REST (CI/CD)</span>
-<span class="tealc">MCP</span>  review_code       <span class="dim">→ Agent tool</span>
-<span class="tealc">MCP</span>  analyze_metrics   <span class="dim">→ Agent tool</span>
-<span class="tealc">POST</span> /v1/sarif         <span class="dim">→ GitHub Code Scanning</span>
-<span class="tealc">POST</span> /v1/review_pr      <span class="dim">→ GitHub PR URL</span></div>
+          <div class="code-snippet"><span class="tealc">POST</span> /v1/review        <span class="mute">→ REST (CI/CD)</span>
+<span class="tealc">MCP</span>  review_code       <span class="mute">→ Agent tool</span>
+<span class="tealc">MCP</span>  analyze_metrics   <span class="mute">→ Agent tool</span>
+<span class="tealc">POST</span> /v1/sarif         <span class="mute">→ GitHub Code Scanning</span>
+<span class="tealc">POST</span> /v1/review_pr      <span class="mute">→ GitHub PR URL</span></div>
         </div>
       </div>
     </div>
