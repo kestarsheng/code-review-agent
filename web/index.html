@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Code Review Agent — Triple-Engine AI Code Review</title>
-<meta name="description" content="40 rules, 9 languages, 3 engines. Rule engine + AST analysis + LLM semantic review with cross-validation. Produces structured reports with per-dimension scores and fix code.">
+<title>Code Review Agent — Review AI-Generated Code Before Merge</title>
+<meta name="description" content="Triple-engine code review for AI-generated code. 40 rules (6 AI-pattern rules) + AST analysis + LLM semantic review with cross-validation. Catches hallucinated imports, eval injections, shell=True, swallowed exceptions — patterns AI coding tools most commonly get wrong.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -272,9 +272,9 @@ footer{border-top:1px solid var(--border);padding:40px 32px;background:var(--pap
 <section class="hero">
   <div class="hero-grid">
     <div class="hero-left">
-      <div class="hero-badge"><span class="pulse"></span> <span data-i18n="hero.badge">40 rules · 9 languages · 3 engines</span></div>
-      <h1 data-i18n-html="hero.title">Code review that<br>actually <span class="accent">finds bugs</span>.</h1>
-      <p data-i18n="hero.desc">Rule engine does deterministic pattern matching. AST analyzer catches syntax and scope issues. LLM does semantic deep review. Cross-validation eliminates false positives — every issue tagged with its source engine.</p>
+      <div class="hero-badge"><span class="pulse"></span> <span data-i18n="hero.badge">6 AI-pattern rules · 40 total · 3 engines</span></div>
+      <h1 data-i18n-html="hero.title">Who reviews the code<br>your <span class="accent">AI agent</span> writes?</h1>
+      <p data-i18n="hero.desc">Claude Code, Codex, Cursor write code fast — but they hallucinate imports, use eval(), swallow exceptions. This agent catches those patterns: 6 dedicated AI-pattern rules + AST structural analysis + LLM semantic review with cross-validation. Every issue tagged with its source engine.</p>
       <div class="hero-actions">
         <button class="btn-primary" onclick="document.getElementById('demo').scrollIntoView()" data-i18n="hero.tryBtn"><svg class="icon"><use href="#i-rocket"/></svg> Try Online</button>
         <button class="btn-ghost" onclick="copyCli()" data-i18n="hero.cliBtn"><svg class="icon"><use href="#i-clipboard"/></svg> Copy CLI Command</button>
@@ -382,7 +382,7 @@ duplicate_def    → <span class="maj">MAJOR</span>   <span class="mute">'proces
         <div class="feature-num">06</div>
         <div class="feature-content">
           <h3 data-i18n="features.f6t">MCP + REST + SARIF — integrate anywhere</h3>
-          <p data-i18n="features.f6d">9 MCP tools for AI agents. 12 REST endpoints for CI/CD. SARIF 2.1.0 export for GitHub Code Scanning and VS Code. PR URL review for GitHub pull requests. All on one server.</p>
+          <p data-i18n="features.f6d">10 MCP tools for AI agents. 12 REST endpoints for CI/CD. SARIF 2.1.0 export for GitHub Code Scanning and VS Code. PR URL review for GitHub pull requests. All on one server.</p>
           <div class="code-snippet"><span class="tealc">POST</span> /v1/review        <span class="mute">→ REST (CI/CD)</span>
 <span class="tealc">MCP</span>  review_code       <span class="mute">→ Agent tool</span>
 <span class="tealc">MCP</span>  analyze_metrics   <span class="mute">→ Agent tool</span>
@@ -515,7 +515,7 @@ def placeholder():
   <div class="section-inner">
     <div class="section-head">
       <span class="label">api</span>
-      <h2 data-i18n="api.title">12 endpoints. 9 MCP tools.</h2>
+      <h2 data-i18n="api.title">12 endpoints. 10 MCP tools.</h2>
       <p data-i18n="api.desc">REST API and MCP tools coexist on the same server. SARIF export for GitHub Code Scanning. PR URL review for pull requests.</p>
     </div>
     <div class="api-list">
@@ -528,7 +528,7 @@ def placeholder():
       <div class="api-row"><span class="api-method api-post">POST</span><span class="path">/v1/sarif</span><span class="desc">Export SARIF 2.1.0 for GitHub Code Scanning / VS Code</span></div>
       <div class="api-row"><span class="api-method api-get">GET</span><span class="path">/v1/rules</span><span class="desc" data-i18n="api.r5">List all 40 rule engine rules</span></div>
       <div class="api-row"><span class="api-method api-get">GET</span><span class="path">/v1/rules/{rule_id}</span><span class="desc" data-i18n="api.r6">View single rule details and fix guidance</span></div>
-      <div class="api-row"><span class="api-method api-get">GET</span><span class="path">/mcp</span><span class="desc" data-i18n="api.r7">Remote MCP streamable HTTP endpoint (9 tools)</span></div>
+      <div class="api-row"><span class="api-method api-get">GET</span><span class="path">/mcp</span><span class="desc" data-i18n="api.r7">Remote MCP streamable HTTP endpoint (10 tools)</span></div>
       <div class="api-row"><span class="api-method api-get">GET</span><span class="path">/health</span><span class="desc" data-i18n="api.r8">Health check, returns deployment commit</span></div>
       <div class="api-row"><span class="api-method api-get">GET</span><span class="path">/.well-known/xagent-verification.json</span><span class="desc"><span style="display:inline-block">Deployment proof — signed commit for hackathon judges</span></span></div>
     </div>
@@ -561,9 +561,9 @@ def placeholder():
 const I18N={
   en:{
     "nav.features":"Features","nav.demo":"Try Online","nav.cta":"Try Now",
-    "hero.badge":"40 rules · 9 languages · 3 engines",
-    "hero.title":'Code review that<br>actually <span class="accent">finds bugs</span>.',
-    "hero.desc":"Rule engine does deterministic pattern matching. AST analyzer catches syntax and scope issues. LLM does semantic deep review. Cross-validation eliminates false positives — every issue tagged with its source engine.",
+    "hero.badge":"6 AI-pattern rules · 40 total · 3 engines",
+    "hero.title":'Who reviews the code<br>your <span class="accent">AI agent</span> writes?',
+    "hero.desc":"Claude Code, Codex, Cursor write code fast — but they hallucinate imports, use eval(), swallow exceptions. This agent catches those patterns: 6 dedicated AI-pattern rules + AST structural analysis + LLM semantic review with cross-validation. Every issue tagged with its source engine.",
     "hero.tryBtn":"<svg class='icon'><use href='#i-rocket'/></svg> Try Online","hero.cliBtn":"<svg class='icon'><use href='#i-clipboard'/></svg> Copy CLI Command",
     "hero.statRules":"Rules","hero.statLangs":"Languages","hero.statTests":"Tests","hero.statEndpoints":"Endpoints",
     "features.title":"Three engines. One verdict.","features.desc":"A single rule engine finds known patterns. A single LLM hallucinates. AST analysis alone misses semantics. Running all three and cross-validating gives you determinism where it matters and depth where it counts.",
@@ -572,18 +572,18 @@ const I18N={
     "features.f3t":"LLM Semantic — the deep review","features.f3d":"Receives rule + AST pre-scan results, then does what deterministic engines can't: logic errors, architecture flaws, business boundary violations. Confirms or denies rule hits, eliminating false positives.",
     "features.f4t":"5-Dimension Scoring — quantified quality","features.f4d":"Correctness, Security, Performance, Maintainability, Best Practice — each 0–100. Composite score weighted: security 30% + correctness 25%. Every issue links back to its source engine and rule ID.",
     "features.f5t":"Fix Code — copy-paste ready","features.f5d":"Every issue ships with a fix_code snippet. Rule engine auto-generates for 8 key patterns. LLM covers complex semantic fixes. One click applies directly to your input — no manual rewriting.",
-    "features.f6t":"MCP + REST + SARIF — integrate anywhere","features.f6d":"9 MCP tools for AI agents. 12 REST endpoints for CI/CD. SARIF 2.1.0 export for GitHub Code Scanning and VS Code. PR URL review for GitHub pull requests. All on one server.",
+    "features.f6t":"MCP + REST + SARIF — integrate anywhere","features.f6d":"10 MCP tools for AI agents. 12 REST endpoints for CI/CD. SARIF 2.1.0 export for GitHub Code Scanning and VS Code. PR URL review for GitHub pull requests. All on one server.",
     "demo.title":"Paste code. Get a review.","demo.desc":"Paste code or diff, click review. Or use CLI: <code>python cli.py --commit HEAD~1</code>",
     "demo.tabCode":"Code Review","demo.tabDiff":"Diff Review","demo.tabFiles":"Multi-File","demo.tabFix":"Auto Fix",
     "demo.phLang":"Language (python / java / js / go)","demo.phCtx":"Task context (optional)",
     "demo.lblCode":"Source Code","demo.lblFiles":"Multi-file (separate with <code># == filename ==</code>)",
     "demo.hint":"<svg class='icon'><use href='#i-bulb'/></svg> <b>CLI recommended:</b><code>python cli.py --staged</code> or <code>python cli.py --commit HEAD~1</code> to review git changes directly, no pasting needed.",
     "demo.runBtn":"<svg class='icon'><use href='#i-play'/></svg> Start Review","demo.emptyResult":'Click "Start Review" to see results',"demo.fixTitle":"<svg class='icon'><use href='#i-wrench'/></svg> Fix Solution",
-    "api.title":"12 endpoints. 9 MCP tools.","api.desc":"REST API and MCP tools coexist on the same server. SARIF export for GitHub Code Scanning. PR URL review for pull requests.",
+    "api.title":"12 endpoints. 10 MCP tools.","api.desc":"REST API and MCP tools coexist on the same server. SARIF export for GitHub Code Scanning. PR URL review for pull requests.",
     "api.r1":"Review source code, return 5-dimension scores + issues + fix code","api.r2":"Review Unified Diff, return change metadata + review report",
     "api.r3":"Multi-file batch review, per-file scan + cross-file analysis","api.r4":"Generate complete fixed version (fixed_code + change notes)",
     "api.r5":"List all 40 rule engine rules","api.r6":"View single rule details and fix guidance",
-    "api.r7":"Remote MCP streamable HTTP endpoint (9 tools)","api.r8":"Health check, returns deployment commit",
+    "api.r7":"Remote MCP streamable HTTP endpoint (10 tools)","api.r8":"Health check, returns deployment commit",
     "footer.features":"Features","footer.demo":"Try",
     "dim.correctness":"Correctness","dim.security":"Security","dim.performance":"Performance","dim.maintainability":"Maintainability","dim.best_practice":"Best Practice",
     "eng.rule":"<svg class='icon'><use href='#i-zap'/></svg> Rule Hits","eng.llm":"<svg class='icon'><use href='#i-cpu'/></svg> LLM Found","eng.conf":"<svg class='icon'><use href='#i-check'/></svg> Cross-Confirmed","eng.total":"<svg class='icon'><use href='#i-search'/></svg> Rules Run",
@@ -597,9 +597,9 @@ const I18N={
   },
   zh:{
     "nav.features":"功能","nav.demo":"在线试用","nav.cta":"立即试用",
-    "hero.badge":"40 条规则 · 9 种语言 · 3 个引擎",
-    "hero.title":'真正能<span class="accent">发现 bug</span><br>的代码评审',
-    "hero.desc":"规则引擎做确定性模式匹配，AST 分析器捕获语法和作用域问题，LLM 做语义级深度评审。交叉验证消除误报 — 每个 issue 标注来源引擎。",
+    "hero.badge":"6 条 AI 幻觉规则 · 共 40 条 · 3 引擎",
+    "hero.title":'谁 来审查<br><span class="accent">AI Agent</span> 写的代码？',
+    "hero.desc":"Claude Code、Codex、Cursor 写代码很快——但它们会幻觉导入、用 eval()、吞异常。本 Agent 专抓这些模式：6 条 AI 专用规则 + AST 结构分析 + LLM 语义评审 + 交叉验证。每个 issue 标注来源引擎。",
     "hero.tryBtn":"<svg class='icon'><use href='#i-rocket'/></svg> 在线试用","hero.cliBtn":"<svg class='icon'><use href='#i-clipboard'/></svg> 复制 CLI 命令",
     "hero.statRules":"规则","hero.statLangs":"语言","hero.statTests":"测试","hero.statEndpoints":"端点",
     "features.title":"三个引擎，一个结论","features.desc":"单一规则引擎只发现已知模式，单一 LLM 会幻觉，AST 分析单独又缺语义。三个引擎交叉验证，在需要确定性的地方给确定性，在需要深度的地方给深度。",
@@ -608,18 +608,18 @@ const I18N={
     "features.f3t":"LLM 语义分析 — 深度评审","features.f3d":"接收规则 + AST 预检结果后做确定性引擎做不到的事：逻辑错误、架构缺陷、业务边界违规。确认或否定规则命中，消除误报。",
     "features.f4t":"五维度评分 — 量化质量","features.f4d":"正确性、安全性、性能、可维护性、最佳实践各 0–100 分。综合分按安全 30% + 正确性 25% 加权。每个 issue 可溯源到来源引擎和规则 ID。",
     "features.f5t":"修复代码 — 复制即用","features.f5d":"每个 issue 附带 fix_code 片段。规则引擎为 8 类关键模式自动生成，LLM 覆盖复杂语义修复。一键应用到输入框 — 无需手动改写。",
-    "features.f6t":"MCP + REST + SARIF — 处处可集成","features.f6d":"9 个 MCP 工具供 AI Agent 调用，12 个 REST 端点供 CI/CD 集成，SARIF 2.1.0 导出供 GitHub Code Scanning 和 VS Code，PR URL 评审 GitHub 拉取请求。全在一个服务器。",
+    "features.f6t":"MCP + REST + SARIF — 处处可集成","features.f6d":"10 个 MCP 工具供 AI Agent 调用，12 个 REST 端点供 CI/CD 集成，SARIF 2.1.0 导出供 GitHub Code Scanning 和 VS Code，PR URL 评审 GitHub 拉取请求。全在一个服务器。",
     "demo.title":"粘贴代码，获得评审","demo.desc":"粘贴代码或 diff，点击评审。也可用 CLI：<code>python cli.py --commit HEAD~1</code>",
     "demo.tabCode":"代码评审","demo.tabDiff":"Diff 评审","demo.tabFiles":"多文件","demo.tabFix":"自动修复",
     "demo.phLang":"语言 (python / java / js / go)","demo.phCtx":"任务上下文（可选）",
     "demo.lblCode":"源代码","demo.lblFiles":"多文件（用 <code># == 文件名 ==</code> 分隔）",
     "demo.hint":"<svg class='icon'><use href='#i-bulb'/></svg> <b>推荐用 CLI：</b><code>python cli.py --staged</code> 或 <code>python cli.py --commit HEAD~1</code> 直接评审 git 改动，无需手动粘贴。",
     "demo.runBtn":"<svg class='icon'><use href='#i-play'/></svg> 开始评审","demo.emptyResult":"点击「开始评审」查看结果","demo.fixTitle":"<svg class='icon'><use href='#i-wrench'/></svg> 修复方案",
-    "api.title":"12 个端点，9 个 MCP 工具","api.desc":"REST API 与 MCP 工具共存于同一服务器。SARIF 导出供 GitHub Code Scanning，PR URL 评审拉取请求。",
+    "api.title":"12 个端点，10 个 MCP 工具","api.desc":"REST API 与 MCP 工具共存于同一服务器。SARIF 导出供 GitHub Code Scanning，PR URL 评审拉取请求。",
     "api.r1":"评审源代码，返回五维度评分 + 问题列表 + 修复代码","api.r2":"评审 Unified Diff，返回变更元数据 + 评审报告",
     "api.r3":"多文件批量评审，per-file 扫描 + 跨文件架构分析","api.r4":"为问题代码生成完整修复版本（fixed_code + 变更说明）",
     "api.r5":"列出全部 40 条规则引擎规则","api.r6":"查看单条规则详情与修复指引",
-    "api.r7":"远程 MCP streamable HTTP 端点（9 个工具）","api.r8":"健康检查，返回部署 commit",
+    "api.r7":"远程 MCP streamable HTTP 端点（10 个工具）","api.r8":"健康检查，返回部署 commit",
     "footer.features":"功能","footer.demo":"试用",
     "dim.correctness":"正确性","dim.security":"安全性","dim.performance":"性能","dim.maintainability":"可维护性","dim.best_practice":"最佳实践",
     "eng.rule":"<svg class='icon'><use href='#i-zap'/></svg> 规则命中","eng.llm":"<svg class='icon'><use href='#i-cpu'/></svg> LLM 发现","eng.conf":"<svg class='icon'><use href='#i-check'/></svg> 交叉确认","eng.total":"<svg class='icon'><use href='#i-search'/></svg> 规则执行",
