@@ -1,7 +1,7 @@
 # Code Review Agent
 
 
-**双引擎 AI 代码质量评审服务**（Code Review as a Service）。规则引擎 + LLM 语义分析 + 交叉验证，输出带分维度评分和可直接应用修复代码的结构化报告。提供 REST API 与 MCP 工具，可被 Claude Code / Codex / Cursor 等 Agent 直接调用。
+**给 AI 生成的代码把关。** 当 Claude Code / Codex / Cursor 写完代码，谁在 merge 前检查？本 Agent 做这件事——三引擎评审（规则引擎 + AST 结构分析 + LLM 语义评审）+ 交叉验证，专治 AI 编程工具最常犯的错误：幻觉导入、`eval()` 注入、`shell=True`、吞异常等。输出带分维度评分、确定性度量、SARIF 导出和可直接应用修复代码的结构化报告。提供 REST API 与 10 个 MCP 工具。
 
 > [English](README.md) | 中文
 
@@ -9,45 +9,72 @@
 >
 > 在线演示：https://code-review-agent-ashy-six.vercel.app
 
-## 双引擎架构
+## 为什么：AI 生成的代码需要不同的评审方式
+
+AI 编程工具（Claude Code、Codex、Cursor、GitHub Copilot）很快——但它们重复犯同样的错误：
+
+| AI 模式 | 发生了什么 | 捕获规则 |
+| --- | --- | --- |
+| 幻觉导入 | `from django.core import some_nonexistent_module` — AI 猜 API 名 | `AI-H001`–`AI-H006` |
+| `eval()` / `exec()` 解析 | AI 用 `eval(user_input)` 而非 `ast.literal_eval()` | `PY-S001` |
+| `shell=True` 命令执行 | AI 拼字符串而非参数列表 | `PY-S003` |
+| 吞异常 | `except: pass` — AI 加裸 catch "以防万一" | `PY-B001` |
+| `forEach` + `await` | AI 写 `arr.forEach(async (x) => await fetch(x))` — 不会 await | `AI-H004` |
+| 硬编码密钥 | AI 内联 API key 而非用环境变量 | `PY-S004` / `JS-S004` |
+
+本 Agent 的规则引擎包含 **6 条专用 AI 模式规则**（`AI-H001`–`AI-H006`），精准打击这些幻觉模式。三引擎设计意味着：规则引擎捕获确定性模式（毫秒级、免费），AST 分析器捕获结构错误（未定义变量、重复定义），LLM 确认/否定规则命中以降低误报——这是单引擎工具做不到的交叉验证。
+
+## 三引擎架构
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    输入：代码 / Diff / 多文件            │
+│              输入：代码 / Diff / 多文件 / PR URL           │
 └───────────────┬─────────────────────────────────────────┘
                 ▼
 ┌──────────────────────────┐   ┌─────────────────────────────┐
-│  ① 规则引擎（确定性）      │   │  ② LLM 语义分析（深度）      │
-│  · 26 条跨语言规则         │   │  · 显式接收规则预检结果       │
-│  · Python/JS/Java/Go/Rust │───▶  · 确认/否定规则命中（去误报） │
-│  · 安全/性能/AI幻觉/风格    │   │  · 发现语义级问题（逻辑/架构） │
-│  · 零成本、毫秒级、离线可跑  │   │  · 生成分维度评分与 fix_code │
-└───────────────┬──────────┘   └──────────────┬──────────────┘
-                ▼                              ▼
+│  ① 规则引擎（regex）       │   │  ② AST 分析（Python）        │
+│  · 40 条跨语言规则         │   │  · 语法错误（精确）           │
+│  · Python/JS/TS/Java/Go/  │   │  · 未定义变量                │
+│    Rust/C/C++/Shell/PHP   │   │  · 未使用导入                │
+│  · 安全/性能/AI幻觉/风格    │   │  · 重复定义                  │
+│  · 零成本、毫秒级           │   │  · 空桩函数                  │
+└──────────┬───────────────┘   └──────────┬──────────────────┘
+           ▔▔▔▔▔▔▔┬────────────────────▘
+                     ▼
+┌──────────────────────────┐
+│  ③ LLM 语义分析            │
+│  · 接收规则 + AST 预检结果  │
+│  · 确认/否定命中            │
+│  · 语义级问题              │
+│  · 评分 & fix_code         │
+└──────────┬───────────────┘
+           ▼
 ┌───────────────────────────────────────────────────────────┐
-│  ③ 交叉验证合并（merge_findings）                          │
-│  · rule      — 仅规则引擎命中（高置信保留）                  │
-│  · llm       — 仅 LLM 发现                                  │
-│  · confirmed — 双引擎一致（置信度提升 +0.3，最高 1.0）       │
+│  ④ 交叉验证合并（merge_findings）                          │
+│  · rule / ast / llm / confirmed（双引擎一致 → 置信 +0.3）   │
 └───────────────────────────────┬───────────────────────────┘
                                 ▼
 ┌───────────────────────────────────────────────────────────┐
-│  ④ 输出：五维度评分 + 可应用修复 + 引擎溯源                  │
-│  · correctness/security/performance/maintainability/best_practice │
-│  · score = 加权平均（security 30% · correctness 25%）        │
+│  ⑤ 输出：五维度评分 + 度量 + SARIF + 修复代码               │
+│  · correctness/security/performance/maintainability/best    │
+│  · 代码质量度量（圈复杂度、函数长度）                        │
+│  · SARIF 2.1.0 导出（VS Code / GitHub Code Scanning）       │
 │  · 每个 issue 附带 fix_code（可直接复制替换）                │
 └───────────────────────────────────────────────────────────┘
 ```
 
 ## 功能特性
 
-- **双引擎评审** — 规则引擎先做确定性静态扫描，LLM 带规则上下文语义评审，交叉验证降低误报
+- **三引擎评审** — 规则引擎（40 条规则，9 语言，6 条 AI 幻觉规则）+ AST 结构分析（Python 语法/未定义变量/未使用导入/重复定义）+ LLM 语义评审 + 交叉验证
 - **五维度评分** — 正确性 / 安全性 / 性能 / 可维护性 / 最佳实践各一个 0–100 分，加权得综合分
+- **确定性质量度量** — 圈复杂度（McCabe）、函数长度分布、注释率、长行——零 LLM 成本，即时
+- **SARIF 2.1.0 导出** — 兼容 VS Code（Sarif Viewer）和 GitHub Code Scanning，CI-ready
+- **GitHub PR/commit URL 评审** — 粘贴 PR 或 commit URL，自动拉取 diff 并评审
 - **可直接应用的修复代码** — 规则引擎为 8 类关键规则自动生成 `fix_code`，LLM 覆盖更复杂的修复
-- **三种评审模式** — 单文件代码、Unified Diff（PR 变更）、多文件批量（跨文件架构问题）
+- **四种评审模式** — 单文件代码、Unified Diff、多文件批量、GitHub PR URL
 - **CLI 一键评审** — `python cli.py` 直接读 git diff 评审，无需粘贴代码
-- **MCP 工具集** — 7 个工具：评审 / Diff 评审 / 多文件评审 / 安全扫描 / 规则解释 / 修复生成 / 规则列表
-- **交互式演示页** — 暗色模式、代码高亮、维度评分条、引擎可视化、"一键应用修复"
+- **MCP 工具集** — 10 个工具：评审 / Diff 评审 / 多文件 / PR 评审 / 安全扫描 / 度量 / SARIF 导出 / 规则解释 / 修复生成 / 规则列表
+- **交互式演示页** — 度量、SARIF、规则、PR URL 标签页（免费即时，无需 LLM）
 
 ## CLI 一键评审（推荐）
 
@@ -96,7 +123,10 @@ python cli.py --sarif results.sarif --remote
 | `POST` | `/v1/review` | 评审源代码，返回结构化报告 |
 | `POST` | `/v1/review_diff` | 评审 Unified Diff（PR 变更） |
 | `POST` | `/v1/review_files` | 多文件批量评审（跨文件架构分析） |
+| `POST` | `/v1/review_pr` | 评审 GitHub PR/commit URL（自动拉取 diff） |
 | `POST` | `/v1/suggest_fix` | 为问题代码生成完整修复版本 |
+| `POST` | `/v1/metrics` | 确定性代码质量度量（无 LLM） |
+| `POST` | `/v1/sarif` | SARIF 2.1.0 导出（VS Code / GitHub Code Scanning） |
 | `GET` | `/v1/rules` | 列出全部规则引擎规则 |
 | `GET` | `/v1/rules/{rule_id}` | 查看单条规则详情与修复指引 |
 | `GET` | `/health` | 健康检查，返回部署 Commit |
@@ -232,23 +262,26 @@ python -m app.mcp_server          # stdio transport
 | `review_code` | `code, language?, context?, detail?` | ✅ | 评审源代码（`detail: "brief"\|"full"`） |
 | `review_diff` | `diff, language?, context?, detail?` | ✅ | 评审 Unified Diff |
 | `review_files` | `files: [{filename, content, language?}], context?, detail?` | ✅ | 多文件批量评审（结构化参数，非 JSON 字符串） |
+| `review_pr` | `url, language?, context?, detail?` | ✅ | 评审 GitHub PR/commit URL（自动拉取 diff） |
 | `detect_security` | `code, language?` | ❌ | 仅规则引擎安全扫描，即时返回 |
+| `analyze_metrics` | `code, language?` | ❌ | 确定性质量度量（圈复杂度、函数长度） |
 | `explain_issue` | `rule_id` | ❌ | 解释某条规则（定义/严重级别/修复指引） |
 | `suggest_fix` | `code, language?, context?` | ✅ | 返回修复后的完整代码（fixed_code + 变更说明） |
+| `export_sarif` | `code, language?, uri?` | ❌ | SARIF 2.1.0 导出（VS Code / GitHub Code Scanning） |
 | `list_rules` | — | ❌ | 列出全部规则 |
 
 > `review_files` 的 `files` 参数是**结构化数组**，每个元素 `{filename, content, language?}`，Agent 无需手工拼 JSON 字符串。
 
 ## 规则引擎
 
-内置 **26 条跨语言规则**，覆盖 Python / JavaScript / Java / Go / Rust / 跨语言通用模式：
+内置 **40 条跨语言规则**，覆盖 Python / JavaScript / TypeScript / Java / Go / Rust / C/C++ / Shell / PHP：
 
-| 类别 | 示例 |
-| --- | --- |
-| Security | `eval`/`exec`、SQL 注入、命令注入、硬编码密钥、`pickle.loads`、`innerHTML` XSS |
-| Performance | 嵌套循环 O(n²)、字典遍历未用 `.items()`、预生成大列表 |
-| AI Pattern | 幻觉导入框架内部模块、`forEach` 中 `await`、catch 吞异常 |
-| Maintainability / Best Practice | TODO/FIXME、裸 `except`、缺类型注解 |
+| 类别 | 数量 | 示例 |
+| --- | --- | --- |
+| Security | 15 | `eval`/`exec`、SQL 注入、命令注入、硬编码密钥、`pickle.loads`、`innerHTML` XSS |
+| Performance | 6 | 嵌套循环 O(n²)、字典遍历未用 `.items()`、预生成大列表 |
+| **AI Pattern** | **6** | **幻觉导入**（`AI-H001`–`AI-H003`）、`forEach`+`await`（`AI-H004`）、吞异常（`AI-H005`）、不存在的方法调用（`AI-H006`） |
+| Maintainability / Best Practice | 13 | TODO/FIXME、裸 `except`、缺类型注解 |
 
 8 类关键规则带 **自动修复代码生成**（`eval`→`ast.literal_eval`、`innerHTML`→`textContent`、硬编码密钥→`os.environ` 等）。
 
@@ -282,7 +315,7 @@ curl https://<your-host>/.well-known/xagent-verification.json
 python -m pytest tests/ -v
 ```
 
-58 个单元测试，覆盖规则引擎、Diff 解析、五维度评分、修复代码生成、多文件评审与完整双引擎流程。
+93 个单元测试，覆盖规则引擎（40 条规则）、AST 分析、Diff 解析、五维度评分、修复代码生成、多文件评审、PR URL 评审、度量、SARIF 导出与完整三引擎流程。
 
 ## License
 
