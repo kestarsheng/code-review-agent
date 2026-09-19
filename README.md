@@ -1,6 +1,6 @@
 # Code Review Agent
 
-**A code review agent for AI-generated code.** When Claude Code / Codex / Cursor writes code, who checks it before merge? This agent does — triple-engine review (rule engine + AST structural analysis + LLM semantic review) with cross-validation, catching the patterns AI coding tools most commonly get wrong: hallucinated imports, `eval()` injections, shell=True, swallowed exceptions, and more. Returns structured reports with per-dimension scores, deterministic metrics, SARIF export, and directly applicable fix code. Provides REST API and 9 MCP tools.
+**A code review agent for AI-generated code.** When Claude Code / Codex / Cursor writes code, who checks it before merge? This agent does — triple-engine review (rule engine + AST structural analysis + LLM semantic review) with cross-validation, catching the patterns AI coding tools most commonly get wrong: hallucinated imports, `eval()` injections, shell=True, swallowed exceptions, and more. Returns structured reports with per-dimension scores, deterministic metrics, SARIF export, and directly applicable fix code. Provides REST API and 10 MCP tools.
 
 > [中文](README_ZH.md) | English
 
